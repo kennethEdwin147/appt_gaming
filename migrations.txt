@@ -1,0 +1,452 @@
+<?php
+
+// 1. Migration Users (mise à jour)
+// 0001_01_01_000000_create_users_table.php
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('users', function (Blueprint $table) {
+            $table->id();
+            $table->string('first_name');
+            $table->string('last_name');
+            $table->string('email')->unique();
+            $table->timestamp('email_verified_at')->nullable();
+            $table->string('password')->nullable();
+            $table->enum('role', ['user', 'creator', 'customer', 'admin', 'guest'])->default('user');
+            $table->string('avatar')->nullable();
+            $table->rememberToken();
+            $table->timestamps();
+        });
+
+        Schema::create('password_reset_tokens', function (Blueprint $table) {
+            $table->string('email')->primary();
+            $table->string('token');
+            $table->timestamp('created_at')->nullable();
+        });
+
+        Schema::create('sessions', function (Blueprint $table) {
+            $table->string('id')->primary();
+            $table->foreignId('user_id')->nullable()->index();
+            $table->string('ip_address', 45)->nullable();
+            $table->text('user_agent')->nullable();
+            $table->longText('payload');
+            $table->integer('last_activity')->index();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('users');
+        Schema::dropIfExists('password_reset_tokens');
+        Schema::dropIfExists('sessions');
+    }
+};
+
+// 2. Migration Creators (version gaming avec Cal.com + Stripe)
+// 2025_06_10_000001_create_creators_table.php
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('creators', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->unique()->constrained()->onDelete('cascade');
+            
+            // Profil de base
+            $table->text('bio')->nullable();
+            
+            // Tarification
+            $table->decimal('hourly_rate', 8, 2)->comment('Prix par heure base');
+            
+            // Intégrations Cal.com
+            $table->string('calcom_user_id')->nullable()->comment('ID utilisateur Cal.com');
+            $table->string('calcom_username')->unique()->nullable()->comment('Username Cal.com (gaming-pseudo)');
+            $table->string('calcom_api_key')->nullable()->comment('API key Cal.com personnel');
+            $table->boolean('calcom_setup_completed')->default(false);
+            $table->json('calcom_event_types')->nullable()->comment('Types d\'événements Cal.com');
+            
+            // Intégrations Stripe Connect
+            $table->string('stripe_account_id')->nullable()->comment('ID compte Stripe Connect');
+            $table->enum('stripe_account_type', ['express', 'standard', 'custom'])->default('express');
+            $table->boolean('stripe_onboarding_completed')->default(false);
+            $table->json('stripe_capabilities')->nullable()->comment('Capacités Stripe activées');
+            $table->decimal('platform_commission_rate', 5, 2)->default(10.00)->comment('Commission plateforme (%)');
+            
+            // Status
+            $table->boolean('profile_verified')->default(false);
+            $table->boolean('accepting_bookings')->default(true);
+            $table->string('timezone')->default('America/Toronto');
+            
+            $table->timestamps();
+            
+            // Index
+            $table->index(['game_specialty', 'skill_level']);
+            $table->index(['accepting_bookings', 'profile_verified']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('creators');
+    }
+};
+
+// 3. Migration Creator Profiles (pages publiques)
+// 2025_06_10_000002_create_creator_profiles_table.php
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('creator_profiles', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('creator_id')->unique()->constrained()->onDelete('cascade');
+            
+            // Profil public
+            $table->string('pseudo')->unique()->comment('Pseudo gaming unique');
+            $table->string('slug')->unique()->comment('Slug pour page publique (/creator/pseudo)');
+            $table->text('public_bio')->nullable()->comment('Bio affichée publiquement');
+            
+            // À venir (prêt pour l'évolution)
+            $table->json('theme_settings')->nullable()->comment('Couleurs, thèmes - pour plus tard');
+            $table->string('cover_image')->nullable()->comment('Image de couverture');
+            $table->string('avatar_url')->nullable()->comment('Avatar personnalisé');
+            
+            // SEO
+            $table->string('meta_title')->nullable();
+            $table->text('meta_description')->nullable();
+            
+            // Visibilité
+            $table->boolean('is_public')->default(true)->comment('Profil visible publiquement');
+            $table->boolean('is_featured')->default(false)->comment('Profil mis en avant');
+            
+            $table->timestamps();
+            
+            // Index
+            $table->index(['slug']);
+            $table->index(['is_public', 'is_featured']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('creator_profiles');
+    }
+};
+
+// 4. Migration Events (au lieu de gaming_sessions)
+// 2025_06_10_000003_create_events_table.php
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('events', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('creator_id')->constrained()->onDelete('cascade');
+            
+            // Event info
+            $table->string('title')->comment('Titre de l\'événement');
+            $table->text('description')->nullable()->comment('Description de l\'événement');
+            
+            // Planning
+            $table->datetime('scheduled_start');
+            $table->datetime('scheduled_end');
+            $table->integer('duration_minutes');
+            $table->string('timezone')->comment('Fuseau horaire de l\'événement');
+            
+            // Cal.com integration
+            $table->string('calcom_booking_id')->nullable()->comment('ID réservation Cal.com');
+            $table->string('calcom_event_id')->nullable()->comment('ID événement Cal.com');
+            $table->string('calcom_meeting_link')->nullable()->comment('Lien généré par Cal.com');
+            
+            // Statuts
+            $table->enum('status', [
+                'available', 'booked', 'completed', 'cancelled'
+            ])->default('available');
+            
+            // Paiement Stripe
+            $table->decimal('price', 8, 2)->comment('Prix de l\'événement');
+            $table->decimal('platform_fee', 8, 2)->comment('Commission plateforme');
+            $table->decimal('creator_earning', 8, 2)->comment('Gain créateur');
+            
+            // Session réelle
+            $table->datetime('actual_start')->nullable();
+            $table->datetime('actual_end')->nullable();
+            
+            $table->timestamps();
+            
+            // Index
+            $table->index(['creator_id', 'scheduled_start']);
+            $table->index(['status', 'scheduled_start']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('events');
+    }
+};
+
+// 5. Migration Reservations (mise à jour pour events)
+// 2025_06_10_000004_create_reservations_table.php
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('reservations', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('event_id')->constrained()->onDelete('cascade');
+            $table->foreignId('customer_id')->constrained()->onDelete('cascade');
+            
+            // Statuts
+            $table->enum('status', [
+                'pending', 'confirmed', 'completed', 'cancelled', 'no_show'
+            ])->default('pending');
+            
+            // Paiement Stripe
+            $table->string('stripe_payment_intent_id')->nullable();
+            $table->string('stripe_transfer_id')->nullable()->comment('Transfer vers créateur');
+            $table->enum('payment_status', ['pending', 'paid', 'refunded', 'failed'])->default('pending');
+            
+            $table->timestamps();
+            
+            // Index
+            $table->index(['customer_id', 'status']);
+            $table->index(['event_id']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('reservations');
+    }
+};
+
+// 6. Migration Transactions (mise à jour pour events)
+// 2025_06_10_000005_create_transactions_table.php
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('transactions', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('event_id')->constrained()->onDelete('cascade');
+            $table->foreignId('creator_id')->constrained();
+            $table->foreignId('customer_id')->constrained();
+            
+            // Montants
+            $table->decimal('amount', 10, 2)->comment('Montant total');
+            $table->decimal('platform_fee', 8, 2)->comment('Commission plateforme');
+            $table->decimal('creator_amount', 10, 2)->comment('Montant créateur');
+            $table->string('currency', 3)->default('CAD');
+            
+            // Stripe Connect
+            $table->string('stripe_payment_intent_id');
+            $table->string('stripe_charge_id')->nullable();
+            $table->string('stripe_transfer_id')->nullable()->comment('Transfer vers créateur Stripe Connect');
+            $table->string('stripe_connect_account_id')->comment('Compte Stripe Connect du créateur');
+            
+            // Statuts
+            $table->enum('status', [
+                'pending', 'processing', 'succeeded', 'failed', 
+                'cancelled', 'refunded', 'disputed'
+            ])->default('pending');
+            
+            $table->enum('type', ['session_payment', 'refund', 'chargeback', 'tip']);
+            
+            // Métadata
+            $table->json('stripe_metadata')->nullable();
+            $table->text('failure_reason')->nullable();
+            $table->datetime('processed_at')->nullable();
+            $table->datetime('transferred_at')->nullable();
+            
+            $table->timestamps();
+            
+            // Index
+            $table->index(['creator_id', 'status']);
+            $table->index(['customer_id']);
+            $table->index(['stripe_payment_intent_id']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('transactions');
+    }
+};
+
+// 7. Migration Cal.com Event Types
+// 2025_06_10_000006_create_calcom_event_types_table.php
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('calcom_event_types', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('creator_id')->constrained()->onDelete('cascade');
+            
+            // Cal.com data
+            $table->string('calcom_event_type_id')->unique()->comment('ID de l\'event type sur Cal.com');
+            $table->string('name')->comment('Nom du type d\'événement');
+            $table->text('description')->nullable();
+            $table->string('slug')->comment('Slug URL Cal.com');
+            
+            // Gaming specific
+            $table->string('name')->comment('Nom du type d\'événement');
+            $table->text('description')->nullable();
+            $table->integer('duration_minutes')->comment('Durée en minutes');
+            $table->decimal('price', 8, 2)->comment('Prix de la session');
+            
+            // Configuration Cal.com
+            $table->json('calcom_settings')->nullable()->comment('Config Cal.com (buffer times, etc.)');
+            $table->boolean('is_active')->default(true);
+            
+            $table->timestamps();
+            
+            // Index
+            $table->index(['creator_id']);
+            $table->index(['is_active']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('calcom_event_types');
+    }
+};
+
+// 8. Migration Webhook Logs
+// 2025_06_10_000007_create_webhook_logs_table.php
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('webhook_logs', function (Blueprint $table) {
+            $table->id();
+            $table->string('source')->comment('calcom, stripe, discord, etc.');
+            $table->string('event_type')->comment('Type d\'événement webhook');
+            $table->json('payload')->comment('Données reçues');
+            $table->enum('status', ['received', 'processing', 'processed', 'failed'])->default('received');
+            $table->text('error_message')->nullable();
+            $table->json('processing_result')->nullable();
+            $table->datetime('processed_at')->nullable();
+            
+            $table->timestamps();
+            
+            // Index
+            $table->index(['source', 'event_type']);
+            $table->index(['status', 'created_at']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('webhook_logs');
+    }
+};
+
+// 9. Migration Platform Settings
+// 2025_06_10_000008_create_platform_settings_table.php
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('platform_settings', function (Blueprint $table) {
+            $table->id();
+            $table->string('key')->unique();
+            $table->text('value');
+            $table->string('type')->default('string')->comment('string, integer, boolean, json, decimal');
+            $table->text('description')->nullable();
+            $table->string('category')->default('general')->comment('general, gaming, payments, calcom');
+            
+            $table->timestamps();
+            
+            $table->index(['category', 'key']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('platform_settings');
+    }
+};
+
+// 10. Migration Notifications
+// 2025_06_10_000009_create_notifications_table.php
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('notifications', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->string('type')->comment('session_booked, session_starting, payment_received, etc.');
+            $table->string('title');
+            $table->text('message');
+            $table->json('data')->nullable()->comment('Données spécifiques au type');
+            
+            // Channels
+            $table->boolean('sent_in_app')->default(false);
+            $table->boolean('sent_email')->default(false);
+            $table->boolean('sent_discord')->default(false);
+            
+            // Status
+            $table->timestamp('read_at')->nullable();
+            $table->boolean('is_important')->default(false);
+            
+            $table->timestamps();
+            
+            // Index
+            $table->index(['user_id', 'read_at']);
+            $table->index(['type', 'created_at']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('notifications');
+    }
+};
+
+// SEEDER avec données par défaut
+// DatabaseSeeder.php (mise à jour)
+class DatabaseSeeder extends Seeder
+{
+    public function run(): void
+    {
+        // Settings par défaut
+        DB::table('platform_settings')->insert([
+            // Gaming
+            ['key' => 'default_commission_rate', 'value' => '10.00', 'type' => 'decimal', 'category' => 'gaming', 'description' => 'Commission par défaut (%)'],
+            ['key' => 'min_session_duration', 'value' => '30', 'type' => 'integer', 'category' => 'gaming', 'description' => 'Durée minimum session (minutes)'],
+            ['key' => 'max_session_duration', 'value' => '180', 'type' => 'integer', 'category' => 'gaming', 'description' => 'Durée maximum session (minutes)'],
+            ['key' => 'booking_advance_hours', 'value' => '4', 'type' => 'integer', 'category' => 'gaming', 'description' => 'Réservation minimum X heures à l\'avance'],
+            ['key' => 'cancellation_hours', 'value' => '2', 'type' => 'integer', 'category' => 'gaming', 'description' => 'Annulation gratuite X heures avant'],
+            
+            // Cal.com
+            ['key' => 'calcom_api_url', 'value' => 'https://api.cal.com/v2', 'type' => 'string', 'category' => 'calcom', 'description' => 'URL API Cal.com'],
+            ['key' => 'calcom_organization_id', 'value' => '', 'type' => 'string', 'category' => 'calcom', 'description' => 'ID organisation Cal.com'],
+            
+            // Stripe
+            ['key' => 'stripe_webhook_secret', 'value' => '', 'type' => 'string', 'category' => 'payments', 'description' => 'Secret webhook Stripe'],
+            ['key' => 'stripe_connect_client_id', 'value' => '', 'type' => 'string', 'category' => 'payments', 'description' => 'Client ID Stripe Connect'],
+        ]);
+
+        // Utilisateur admin par défaut
+        $admin = User::create([
+            'first_name' => 'Admin',
+            'last_name' => 'Gaming',
+            'email' => 'admin@gaming-platform.com',
+            'password' => Hash::make('SecurePassword123!'),
+            'role' => 'admin',
+            'email_verified_at' => now(),
+        ]);
+
+        $this->command->info('Base de données initialisée avec succès !');
+        $this->command->info('Admin créé - Email: admin@gaming-platform.com');
+    }
+}
