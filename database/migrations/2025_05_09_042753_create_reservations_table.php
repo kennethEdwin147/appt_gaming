@@ -24,6 +24,13 @@ return new class extends Migration
             $table->string('meeting_link')->nullable()->comment('Lien de réunion spécifique à cette réservation');
             $table->timestamp('reservation_time')->useCurrent();
             $table->enum('status', ['pending', 'confirmed', 'cancelled', 'rescheduled', 'completed'])->default('pending')->comment('Statut de la réservation indépendamment du paiement');
+            
+            
+            $table->foreignId('time_slot_id')->constrained()->after('event_type_id');
+            $table->decimal('price_paid', 8, 2)->after('timezone');
+            $table->text('special_requests')->nullable()->after('price_paid');
+            $table->integer('participants_count')->default(1)->after('special_requests');
+
             $table->string('payment_status')->default('pending');
             $table->string('payment_id')->nullable();
             $table->timestamps();

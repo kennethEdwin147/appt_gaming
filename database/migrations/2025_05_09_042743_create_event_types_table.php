@@ -20,6 +20,12 @@ return new class extends Migration
             $table->integer('default_max_participants')->nullable();
             $table->string('meeting_platform')->default('zoom')->comment('Plateforme de réunion (zoom, teams, google_meet, etc.)');
             $table->string('meeting_link')->comment('Lien de réunion personnalisé');
+
+            // Ajouter SEULEMENT à ta table event_types existante :
+            $table->enum('session_type', ['individual', 'group'])->default('individual')->after('default_max_participants');
+
+
+            $table->boolean('is_active')->default(true);
             $table->foreignId('creator_id')->constrained('creators')->onDelete('cascade');
             $table->foreignId('schedule_id')->constrained()->onDelete('cascade')->comment('Horaire associé à ce type d\'événement');
             $table->timestamps();
