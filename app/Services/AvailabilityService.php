@@ -4,8 +4,8 @@ namespace App\Services;
 
 use App\Models\Creator;
 use App\Models\EventType;
+use App\Models\TimeSlot;
 use App\Models\Availability;
-use App\Models\Reservation;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -13,6 +13,7 @@ class AvailabilityService
 {
     /**
      * Récupère les créneaux disponibles pour un créateur et un type d'événement
+     * VERSION TIME SLOTS - Plus de calcul en temps réel, juste query des slots pré-générés
      */
     public function getAvailableSlots(int $creatorId, int $eventTypeId, Carbon $startDate, Carbon $endDate, string $timezone): array
     {
@@ -24,75 +25,41 @@ class AvailabilityService
             return [];
         }
 
-        $creatorTimezone = $creator->timezone ?? 'UTC';
-        $duration = $eventType->default_duration; // en minutes
-
-        $slots = [];
-        $currentDate = $startDate->copy();
-
-        while ($currentDate->lte($endDate)) {
-            $daySlots = $this->getSlotsForDay($creator, $eventType, $currentDate, $duration, $timezone, $creatorTimezone);
-            if (!empty($daySlots)) {
-                $slots[$currentDate->format('Y-m-d')] = $daySlots;
-            }
-            $currentDate->addDay();
-        }
-
-        return $slots;
-    }
-
-    /**
-     * Récupère les créneaux disponibles pour une journée donnée
-     */
-    private function getSlotsForDay(Creator $creator, EventType $eventType, Carbon $date, int $duration, string $userTimezone, string $creatorTimezone): array
-    {
-        $dayOfWeek = strtolower($date->format('l'));
-
-        // Récupérer les disponibilités pour ce jour de la semaine
-        $availabilities = Availability::whereHas('schedule', function ($query) use ($creator) {
-                $query->where('creator_id', $creator->id);
-            })
-            ->where('day_of_week', $dayOfWeek)
-            ->where('is_active', true)
-            ->where(function ($query) use ($date) {
-                $query->whereNull('effective_from')
-                      ->orWhere('effective_from', '<=', $date->format('Y-m-d'));
-            })
-            ->where(function ($query) use ($date) {
-                $query->whereNull('effective_until')
-                      ->orWhere('effective_until', '>=', $date->format('Y-m-d'));
-            })
+        // Récupérer les time_slots disponibles dans la période demandée
+        $timeSlots = TimeSlot::where('creator_id', $creatorId)
+            ->where('status', 'available')
+            ->whereBetween('start_time', [
+                $startDate->copy()->startOfDay()->utc(),
+                $endDate->copy()->endOfDay()->utc()
+            ])
+            ->orderBy('start_time')
             ->get();
 
-        if ($availabilities->isEmpty()) {
-            return [];
-        }
-
+        // Organiser par date et convertir dans le timezone de l'utilisateur
         $slots = [];
-
-        foreach ($availabilities as $availability) {
-            $slotTime = Carbon::createFromFormat('Y-m-d H:i:s', $date->format('Y-m-d') . ' ' . $availability->start_time->format('H:i:s'), $creatorTimezone);
-            $endTime = Carbon::createFromFormat('Y-m-d H:i:s', $date->format('Y-m-d') . ' ' . $availability->end_time->format('H:i:s'), $creatorTimezone);
-
-            // Générer les créneaux de la durée spécifiée
-            while ($slotTime->copy()->addMinutes($duration)->lte($endTime)) {
-                $slotEndTime = $slotTime->copy()->addMinutes($duration);
-
-                // Vérifier si le créneau n'est pas déjà réservé
-                if ($this->isSlotAvailable($slotTime, $slotEndTime, $eventType->id, $creator->id)) {
-                    // Convertir dans le fuseau horaire de l'utilisateur
-                    $userSlotTime = $slotTime->copy()->setTimezone($userTimezone);
-
-                    $slots[] = [
-                        'start_time' => $userSlotTime->format('H:i'),
-                        'end_time' => $userSlotTime->copy()->addMinutes($duration)->format('H:i'),
-                        'datetime' => $slotTime->utc()->toISOString(),
-                        'display_time' => $userSlotTime->format('H:i'),
-                        'availability_id' => $availability->id,
-                    ];
+        
+        foreach ($timeSlots as $timeSlot) {
+            // Convertir dans le timezone utilisateur
+            $userSlotTime = $timeSlot->start_time->setTimezone($timezone);
+            $dateKey = $userSlotTime->format('Y-m-d');
+            
+            // Vérifier que le slot peut accommoder la durée de l'événement
+            $slotDuration = $timeSlot->start_time->diffInMinutes($timeSlot->end_time);
+            if ($slotDuration >= $eventType->default_duration) {
+                
+                if (!isset($slots[$dateKey])) {
+                    $slots[$dateKey] = [];
                 }
 
-                $slotTime->addMinutes($duration);
+                $slots[$dateKey][] = [
+                    'id' => $timeSlot->id,
+                    'start_time' => $userSlotTime->format('H:i'),
+                    'end_time' => $userSlotTime->copy()->addMinutes($eventType->default_duration)->format('H:i'),
+                    'datetime' => $timeSlot->start_time->utc()->toISOString(),
+                    'display_time' => $userSlotTime->format('H:i'),
+                    'custom_price' => $timeSlot->custom_price, // Prix custom si défini
+                    'creator_notes' => $timeSlot->creator_notes, // Notes du créateur si publiques
+                ];
             }
         }
 
@@ -100,44 +67,230 @@ class AvailabilityService
     }
 
     /**
-     * Vérifie si un créneau est disponible (pas de réservation existante)
+     * Vérifie si un time slot spécifique est disponible pour réservation
      */
-    private function isSlotAvailable(Carbon $startTime, Carbon $endTime, int $eventTypeId, int $creatorId): bool
+    public function isTimeSlotAvailable(int $timeSlotId, int $eventTypeId): bool
     {
-        // Récupérer la durée de l'événement
+        $timeSlot = TimeSlot::find($timeSlotId);
+        
+        if (!$timeSlot || $timeSlot->status !== 'available') {
+            return false;
+        }
+
         $eventType = EventType::find($eventTypeId);
         if (!$eventType) {
             return false;
         }
 
-        $duration = $eventType->default_duration;
+        // Vérifier que le slot appartient au bon créateur
+        if ($timeSlot->creator_id !== $eventType->creator_id) {
+            return false;
+        }
 
-        $conflictingReservations = Reservation::where('creator_id', $creatorId)
-            ->where('status', '!=', 'cancelled')
-            ->where(function ($query) use ($startTime, $endTime, $duration) {
-                // Vérifier les chevauchements de créneaux
-                $query->where(function ($subQuery) use ($startTime, $endTime) {
-                    // Le créneau demandé chevauche avec une réservation existante
-                    $subQuery->where('reserved_datetime', '<', $endTime->utc())
-                             ->where('reserved_datetime', '>=', $startTime->utc());
-                });
-            })
-            ->exists();
+        // Vérifier que le slot peut accommoder la durée de l'événement
+        $slotDuration = $timeSlot->start_time->diffInMinutes($timeSlot->end_time);
+        if ($slotDuration < $eventType->default_duration) {
+            return false;
+        }
 
-        return !$conflictingReservations;
+        // Vérifier que le slot n'est pas dans le passé
+        if ($timeSlot->start_time->isPast()) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
-     * Vérifie si un créneau spécifique est disponible pour réservation
+     * Réserve un time slot (change son statut à 'booked')
      */
-    public function isSlotAvailableForReservation(string $datetime, string $timezone, int $eventTypeId, int $creatorId): bool
+    public function bookTimeSlot(int $timeSlotId): bool
     {
-        $eventType = EventType::findOrFail($eventTypeId);
-        $duration = $eventType->default_duration;
+        $timeSlot = TimeSlot::find($timeSlotId);
+        
+        if (!$timeSlot || $timeSlot->status !== 'available') {
+            return false;
+        }
 
-        $startTime = Carbon::parse($datetime, $timezone);
-        $endTime = $startTime->copy()->addMinutes($duration);
+        return $timeSlot->update(['status' => 'booked']);
+    }
 
-        return $this->isSlotAvailable($startTime, $endTime, $eventTypeId, $creatorId);
+    /**
+     * Libère un time slot (remet son statut à 'available')
+     */
+    public function releaseTimeSlot(int $timeSlotId): bool
+    {
+        $timeSlot = TimeSlot::find($timeSlotId);
+        
+        if (!$timeSlot || $timeSlot->status !== 'booked') {
+            return false;
+        }
+
+        return $timeSlot->update(['status' => 'available']);
+    }
+
+    /**
+     * Bloque un time slot manuellement (créateur peut bloquer ses propres slots)
+     */
+    public function blockTimeSlot(int $timeSlotId, int $creatorId, string $reason = null): bool
+    {
+        $timeSlot = TimeSlot::where('id', $timeSlotId)
+            ->where('creator_id', $creatorId)
+            ->where('status', 'available')
+            ->first();
+        
+        if (!$timeSlot) {
+            return false;
+        }
+
+        return $timeSlot->update([
+            'status' => 'blocked',
+            'creator_notes' => $reason
+        ]);
+    }
+
+    /**
+     * Débloquer un time slot
+     */
+    public function unblockTimeSlot(int $timeSlotId, int $creatorId): bool
+    {
+        $timeSlot = TimeSlot::where('id', $timeSlotId)
+            ->where('creator_id', $creatorId)
+            ->where('status', 'blocked')
+            ->first();
+        
+        if (!$timeSlot) {
+            return false;
+        }
+
+        return $timeSlot->update([
+            'status' => 'available',
+            'creator_notes' => null
+        ]);
+    }
+
+    /**
+     * Génère les time slots pour un créateur basé sur ses availabilities
+     * (Méthode appelée par la commande artisan ou manuellement)
+     */
+    public function generateTimeSlotsForCreator(int $creatorId, Carbon $startDate, Carbon $endDate): array
+    {
+        $creator = Creator::findOrFail($creatorId);
+        $generated = [];
+        $currentDate = $startDate->copy();
+
+        while ($currentDate->lte($endDate)) {
+            $dayOfWeek = strtolower($currentDate->format('l'));
+            
+            // Récupérer les availabilities pour ce jour
+            $availabilities = Availability::whereHas('schedule', function ($query) use ($creator) {
+                    $query->where('creator_id', $creator->id);
+                })
+                ->where('day_of_week', $dayOfWeek)
+                ->where('is_active', true)
+                ->where(function ($query) use ($currentDate) {
+                    $query->whereNull('effective_from')
+                          ->orWhere('effective_from', '<=', $currentDate->format('Y-m-d'));
+                })
+                ->where(function ($query) use ($currentDate) {
+                    $query->whereNull('effective_until')
+                          ->orWhere('effective_until', '>=', $currentDate->format('Y-m-d'));
+                })
+                ->get();
+
+            foreach ($availabilities as $availability) {
+                $slots = $this->createSlotsForAvailability($creator, $availability, $currentDate);
+                $generated = array_merge($generated, $slots);
+            }
+
+            $currentDate->addDay();
+        }
+
+        return $generated;
+    }
+
+    /**
+     * Crée les time slots pour une availability donnée sur une date précise
+     */
+    private function createSlotsForAvailability(Creator $creator, Availability $availability, Carbon $date): array
+    {
+        $createdSlots = [];
+        $creatorTimezone = $creator->timezone ?? 'UTC';
+        
+        // Créer le datetime de début et fin dans le timezone du créateur
+        $slotStart = $date->copy()
+            ->setTimezone($creatorTimezone)
+            ->setTimeFromTimeString($availability->start_time->format('H:i:s'));
+            
+        $dayEnd = $date->copy()
+            ->setTimezone($creatorTimezone)
+            ->setTimeFromTimeString($availability->end_time->format('H:i:s'));
+
+        // Générer des créneaux de 30 minutes par défaut (configurable)
+        $slotDuration = 30; // minutes
+        
+        while ($slotStart->copy()->addMinutes($slotDuration)->lte($dayEnd)) {
+            $slotEnd = $slotStart->copy()->addMinutes($slotDuration);
+            
+            // Vérifier si le slot n'existe pas déjà
+            $existingSlot = TimeSlot::where('creator_id', $creator->id)
+                ->where('start_time', $slotStart->utc())
+                ->first();
+
+            if (!$existingSlot) {
+                $timeSlot = TimeSlot::create([
+                    'creator_id' => $creator->id,
+                    'start_time' => $slotStart->utc(),
+                    'end_time' => $slotEnd->utc(),
+                    'timezone' => $creatorTimezone,
+                    'status' => 'available',
+                    'generated_for_date' => $date->format('Y-m-d'),
+                    'is_recurring_slot' => true,
+                ]);
+                
+                $createdSlots[] = $timeSlot;
+            }
+            
+            $slotStart->addMinutes($slotDuration);
+        }
+
+        return $createdSlots;
+    }
+
+    /**
+     * Nettoie les time slots passés (change leur statut à 'past')
+     */
+    public function cleanupPastSlots(): int
+    {
+        return TimeSlot::where('end_time', '<', now())
+            ->whereIn('status', ['available', 'blocked'])
+            ->update(['status' => 'past']);
+    }
+
+    /**
+     * Récupère les statistiques des time slots pour un créateur
+     */
+    public function getCreatorSlotsStats(int $creatorId, Carbon $startDate = null, Carbon $endDate = null): array
+    {
+        $query = TimeSlot::where('creator_id', $creatorId);
+        
+        if ($startDate && $endDate) {
+            $query->whereBetween('start_time', [$startDate, $endDate]);
+        }
+
+        $total = $query->count();
+        $available = $query->where('status', 'available')->count();
+        $booked = $query->where('status', 'booked')->count();
+        $blocked = $query->where('status', 'blocked')->count();
+        $past = $query->where('status', 'past')->count();
+
+        return [
+            'total' => $total,
+            'available' => $available,
+            'booked' => $booked,
+            'blocked' => $blocked,
+            'past' => $past,
+            'utilization_rate' => $total > 0 ? round(($booked / $total) * 100, 2) : 0,
+        ];
     }
 }
