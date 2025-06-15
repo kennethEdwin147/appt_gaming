@@ -10,9 +10,15 @@ Créer les controllers suivants dans `app/Http/Controllers/` :
 - **EventTypeController** (CRUD pour créateurs)
 - **AvailabilityController** (gestion horaires)
 
+Créer les controllers suivants dans `app/Http/Controllers/Settings/` :
+
+- **CreatorSettingsController** (paramètres compte créateur)
+- **CustomerSettingsController** (paramètres compte client)
+
 ## STRUCTURE GÉNÉRALE
 
-- **Namespace :** `App\Http\Controllers`
+- **Namespace principal :** `App\Http\Controllers`
+- **Namespace settings :** `App\Http\Controllers\Settings`
 - **Services :** Utiliser les Services existants (ReservationService, AvailabilityService, EmailService)
 - **Validation :** Inline dans les controllers (pas de Form Requests pour l'instant)
 - **Réponses :** JSON pour API + redirect pour web selon les routes
@@ -64,6 +70,25 @@ Créer les controllers suivants dans `app/Http/Controllers/` :
 - update() : modifier availability
 - destroy() : supprimer availability
 - generateSlots() : déclencher génération time slots
+```
+
+### CreatorSettingsController
+```php
+- index() : page paramètres créateur
+- updateProfile() : modifier profil (bio, pseudo, etc.)
+- updateAvailability() : modifier horaires généraux
+- updatePayment() : paramètres Stripe Connect
+- updateNotifications() : préférences notifications
+- updatePassword() : changer mot de passe
+```
+
+### CustomerSettingsController
+```php
+- index() : page paramètres client
+- updateProfile() : modifier profil client
+- updateTimezone() : changer fuseau horaire
+- updateNotifications() : préférences notifications
+- updatePassword() : changer mot de passe
 ```
 
 ## SERVICES À UTILISER
@@ -188,4 +213,3 @@ class ReservationController extends Controller
 - Ajouter des scopes dans les queries (ex: `available()`, `upcoming()`)
 - Respecter les conventions REST pour les noms de méthodes
 - Prévoir les cas d'erreur (ressource non trouvée, accès refusé, etc.)
-- Utiliser les policies pour l'autorisation des actions
