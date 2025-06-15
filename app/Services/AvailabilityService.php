@@ -2,18 +2,19 @@
 
 namespace App\Services;
 
-use App\Models\Creator;
-use App\Models\EventType;
-use App\Models\TimeSlot;
-use App\Models\Availability;
+use App\Models\creator\Creator;
+use App\Models\event_type\EventType;
+use App\Models\time_slot\TimeSlot;
+use App\Models\availability\Availability;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 
 class AvailabilityService
 {
     /**
      * Récupère les créneaux disponibles pour un créateur et un type d'événement
-     * VERSION TIME SLOTS - Plus de calcul en temps réel, juste query des slots pré-générés
+     * VERSION TIME SLOTS avec génération automatique à la demande
      */
     public function getAvailableSlots(int $creatorId, int $eventTypeId, Carbon $startDate, Carbon $endDate, string $timezone): array
     {
@@ -25,7 +26,12 @@ class AvailabilityService
             return [];
         }
 
-        // Récupérer les time_slots disponibles dans la période demandée
+        Log::info("Getting available slots for creator {$creatorId} from {$startDate->format('Y-m-d')} to {$endDate->format('Y-m-d')}");
+
+        // 1. S'assurer que les slots existent pour la période demandée
+        $this->ensureSlotsExist($creatorId, $startDate, $endDate);
+
+        // 2. Récupérer les time_slots disponibles dans la période demandée
         $timeSlots = TimeSlot::where('creator_id', $creatorId)
             ->where('status', 'available')
             ->whereBetween('start_time', [
@@ -64,6 +70,84 @@ class AvailabilityService
         }
 
         return $slots;
+    }
+
+    /**
+     * S'assure que les time slots existent pour la période demandée
+     * Génère automatiquement les slots manquants
+     */
+    public function ensureSlotsExist(int $creatorId, Carbon $startDate, Carbon $endDate): array
+    {
+        // Limiter la génération à 30 jours max pour la performance
+        $maxDays = 30;
+        $limitedEndDate = $startDate->copy()->addDays($maxDays);
+        if ($endDate->gt($limitedEndDate)) {
+            $endDate = $limitedEndDate;
+            Log::warning("Limited slot generation to {$maxDays} days for creator {$creatorId}");
+        }
+
+        $generated = [];
+        $currentDate = $startDate->copy();
+
+        Log::info("Ensuring slots exist for creator {$creatorId} from {$startDate->format('Y-m-d')} to {$endDate->format('Y-m-d')}");
+
+        while ($currentDate->lte($endDate)) {
+            // Vérifier si des slots existent déjà pour cette date
+            $existingSlotsCount = TimeSlot::where('creator_id', $creatorId)
+                ->whereDate('generated_for_date', $currentDate->format('Y-m-d'))
+                ->count();
+
+            if ($existingSlotsCount === 0) {
+                Log::info("Generating slots for creator {$creatorId} on {$currentDate->format('Y-m-d')}");
+                
+                // Générer les slots pour cette date
+                $daySlots = $this->generateTimeSlotsForDate($creatorId, $currentDate);
+                $generated = array_merge($generated, $daySlots);
+                
+                Log::info("Generated " . count($daySlots) . " slots for creator {$creatorId} on {$currentDate->format('Y-m-d')}");
+            }
+
+            $currentDate->addDay();
+        }
+
+        if (count($generated) > 0) {
+            Log::info("Total slots generated: " . count($generated) . " for creator {$creatorId}");
+        }
+
+        return $generated;
+    }
+
+    /**
+     * Génère les time slots pour un créateur pour une date spécifique
+     */
+    private function generateTimeSlotsForDate(int $creatorId, Carbon $date): array
+    {
+        $creator = Creator::findOrFail($creatorId);
+        $dayOfWeek = strtolower($date->format('l'));
+        $generated = [];
+        
+        // Récupérer les availabilities pour ce jour
+        $availabilities = Availability::whereHas('schedule', function ($query) use ($creator) {
+                $query->where('creator_id', $creator->id);
+            })
+            ->where('day_of_week', $dayOfWeek)
+            ->where('is_active', true)
+            ->where(function ($query) use ($date) {
+                $query->whereNull('effective_from')
+                      ->orWhere('effective_from', '<=', $date->format('Y-m-d'));
+            })
+            ->where(function ($query) use ($date) {
+                $query->whereNull('effective_until')
+                      ->orWhere('effective_until', '>=', $date->format('Y-m-d'));
+            })
+            ->get();
+
+        foreach ($availabilities as $availability) {
+            $slots = $this->createSlotsForAvailability($creator, $availability, $date);
+            $generated = array_merge($generated, $slots);
+        }
+
+        return $generated;
     }
 
     /**
@@ -132,7 +216,7 @@ class AvailabilityService
     /**
      * Bloque un time slot manuellement (créateur peut bloquer ses propres slots)
      */
-    public function blockTimeSlot(int $timeSlotId, int $creatorId, string $reason = null): bool
+    public function blockTimeSlot(int $timeSlotId, int $creatorId, ?string $reason = null): bool
     {
         $timeSlot = TimeSlot::where('id', $timeSlotId)
             ->where('creator_id', $creatorId)
@@ -270,7 +354,7 @@ class AvailabilityService
     /**
      * Récupère les statistiques des time slots pour un créateur
      */
-    public function getCreatorSlotsStats(int $creatorId, Carbon $startDate = null, Carbon $endDate = null): array
+    public function getCreatorSlotsStats(int $creatorId, ?Carbon $startDate = null, ?Carbon $endDate = null): array
     {
         $query = TimeSlot::where('creator_id', $creatorId);
         
