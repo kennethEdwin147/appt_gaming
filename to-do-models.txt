@@ -1,0 +1,30 @@
+Crée TOUS les models Eloquent basés sur les migrations dans database/migrations/ :
+
+MODELS À CRÉER :
+- User (avec relations)
+- Creator 
+- Customer
+- EventType
+- Schedule  
+- Availability
+- Reservation
+- Transaction
+- CreatorProfile
+- Notification
+- TimeSlot (nouveau)
+
+POUR CHAQUE MODEL :
+1. Fillable/guarded selon les colonnes des migrations
+2. Casts pour json, datetime, decimal, boolean
+3. Relations Eloquent complètes (hasMany, belongsTo, etc.)
+4. Scopes pour queries communes (active, available, etc.)
+5. Accessors/Mutators si pertinents
+
+UTILISE LES ENUMS EXISTANTS :
+- EventDuration, MaxParticipants, MeetingPlatform, PaymentProvider, Timezone
+
+NAMESPACE : App\Models\
+
+
+🔥 Point important :
+Dis-lui de bien regarder les foreign keys dans tes migrations pour créer les bonnes relations

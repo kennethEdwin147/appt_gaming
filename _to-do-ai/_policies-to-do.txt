@@ -1,0 +1,296 @@
+# Instructions Policies - Gaming Platform
+
+## POLICIES À CRÉER
+
+Créer les policies suivantes dans `app/Policies/` :
+
+- **ReservationPolicy** (autoriser actions sur réservations)
+- **TimeSlotPolicy** (autoriser réservation/blocage slots)
+- **CreatorPolicy** (accès profil et dashboard créateur)
+- **EventTypePolicy** (CRUD event types)
+- **AvailabilityPolicy** (gestion horaires)
+- **UserPolicy** (gestion profils utilisateurs)
+
+## STRUCTURE GÉNÉRALE
+
+- **Namespace :** `App\Policies`
+- **Trait :** Utiliser `HandlesAuthorization` (garde pour compatibilité)
+- **Conventions :** Méthodes standards (view, create, update, delete) + méthodes custom
+- **Return :** `true` pour autoriser, `false` pour refuser
+- **User null :** Gérer les utilisateurs non connectés quand nécessaire
+
+## MÉTHODES PAR POLICY
+
+### ReservationPolicy
+```php
+- viewAny(User $user) : voir liste réservations (connecté)
+- view(User $user, Reservation $reservation) : voir détails réservation
+- create(User $user) : créer réservation (connecté)
+- update(User $user, Reservation $reservation) : modifier réservation
+- cancel(User $user, Reservation $reservation) : annuler réservation
+- confirm(User $user, Reservation $reservation) : confirmer réservation
+- reschedule(User $user, Reservation $reservation) : reprogrammer
+```
+
+### TimeSlotPolicy
+```php
+- viewAny(?User $user) : voir slots disponibles (public)
+- view(?User $user, TimeSlot $timeSlot) : voir détails slot (public)
+- book(User $user, TimeSlot $timeSlot) : réserver slot
+- block(User $user, TimeSlot $timeSlot) : bloquer slot
+- unblock(User $user, TimeSlot $timeSlot) : débloquer slot
+- manage(User $user, TimeSlot $timeSlot) : gérer slot (créateur)
+```
+
+### CreatorPolicy
+```php
+- viewAny(User $user) : lister créateurs (public)
+- view(?User $user, Creator $creator) : voir profil créateur (public)
+- update(User $user, Creator $creator) : modifier profil
+- dashboard(User $user) : accès dashboard créateur
+- manageReservations(User $user, Creator $creator) : gérer réservations
+- manageAvailability(User $user, Creator $creator) : gérer horaires
+```
+
+### EventTypePolicy
+```php
+- viewAny(?User $user) : voir event types (public)
+- view(?User $user, EventType $eventType) : voir détails (public)
+- create(User $user) : créer event type (créateur)
+- update(User $user, EventType $eventType) : modifier
+- delete(User $user, EventType $eventType) : supprimer
+- toggle(User $user, EventType $eventType) : activer/désactiver
+```
+
+### AvailabilityPolicy
+```php
+- viewAny(User $user, Creator $creator) : voir horaires
+- view(User $user, Availability $availability) : voir détails
+- create(User $user, Creator $creator) : créer horaires
+- update(User $user, Availability $availability) : modifier
+- delete(User $user, Availability $availability) : supprimer
+- generateSlots(User $user, Creator $creator) : générer slots
+```
+
+### UserPolicy (mise à jour de l'existante)
+```php
+- viewAny(User $user) : lister utilisateurs (admin)
+- view(User $currentUser, User $user) : voir profil
+- update(User $currentUser, User $user) : modifier profil
+- delete(User $currentUser, User $user) : supprimer (admin)
+- updateSettings(User $currentUser, User $user) : modifier paramètres
+```
+
+## LOGIQUES D'AUTORISATION
+
+### Règles Générales
+```php
+// Créateur = propriétaire de ses ressources
+if ($user->creator && $user->creator->id === $resource->creator_id) {
+    return true;
+}
+
+// Utilisateur = propriétaire de ses réservations
+if ($user->id === $reservation->user_id) {
+    return true;
+}
+
+// Admin = accès total
+if ($user->role === 'admin') {
+    return true;
+}
+```
+
+### TimeSlot Booking
+```php
+public function book(User $user, TimeSlot $timeSlot): bool
+{
+    // Doit être connecté
+    if (!$user) return false;
+    
+    // Slot doit être disponible
+    if ($timeSlot->status !== 'available') return false;
+    
+    // Ne peut pas réserver ses propres slots
+    if ($user->creator && $user->creator->id === $timeSlot->creator_id) {
+        return false;
+    }
+    
+    // Slot ne doit pas être dans le passé
+    if ($timeSlot->start_time->isPast()) return false;
+    
+    return true;
+}
+```
+
+### Reservation Management
+```php
+public function cancel(User $user, Reservation $reservation): bool
+{
+    // Propriétaire de la réservation
+    if ($user->id === $reservation->user_id) {
+        // Vérifier délai d'annulation (ex: 2h avant)
+        return $reservation->reserved_datetime->subHours(2)->isFuture();
+    }
+    
+    // Créateur peut toujours annuler
+    if ($user->creator && $user->creator->id === $reservation->creator_id) {
+        return true;
+    }
+    
+    return false;
+}
+
+public function confirm(User $user, Reservation $reservation): bool
+{
+    // Seul le créateur peut confirmer
+    return $user->creator && 
+           $user->creator->id === $reservation->creator_id &&
+           $reservation->status === 'pending';
+}
+```
+
+## ENREGISTREMENT DES POLICIES
+
+Dans `AuthServiceProvider.php` :
+
+```php
+protected $policies = [
+    Reservation::class => ReservationPolicy::class,
+    TimeSlot::class => TimeSlotPolicy::class,
+    Creator::class => CreatorPolicy::class,
+    EventType::class => EventTypePolicy::class,
+    Availability::class => AvailabilityPolicy::class,
+    User::class => UserPolicy::class,
+];
+```
+
+## UTILISATION DANS LES CONTROLLERS
+
+```php
+// Vérification avant action
+public function show(Reservation $reservation)
+{
+    $this->authorize('view', $reservation);
+    return view('reservations.show', compact('reservation'));
+}
+
+// Vérification avec condition
+public function book(Request $request, TimeSlot $timeSlot)
+{
+    if (!auth()->user()->can('book', $timeSlot)) {
+        return response()->json(['error' => 'Non autorisé'], 403);
+    }
+    
+    // Logique de réservation...
+}
+
+// Filtrage dans les queries
+public function index()
+{
+    $reservations = Reservation::query()
+        ->when(auth()->user()->role !== 'admin', function ($query) {
+            // Non-admin = ses propres réservations ou celles de son creator
+            $query->where(function ($q) {
+                $q->where('user_id', auth()->id())
+                  ->orWhere('creator_id', auth()->user()->creator?->id);
+            });
+        })
+        ->paginate();
+        
+    return view('reservations.index', compact('reservations'));
+}
+```
+
+## MIDDLEWARE D'AUTORISATION
+
+```php
+// Dans routes/web.php
+Route::middleware(['auth', 'can:dashboard,App\Models\Creator'])
+     ->get('/creator/dashboard', [CreatorController::class, 'dashboard']);
+
+Route::middleware(['auth'])
+     ->post('/reservations', [ReservationController::class, 'store']);
+```
+
+## GATES PERSONNALISÉS (optionnel)
+
+```php
+// Dans AuthServiceProvider::boot()
+Gate::define('manage-creator-resources', function (User $user, Creator $creator) {
+    return $user->creator && $user->creator->id === $creator->id;
+});
+
+Gate::define('book-time-slots', function (User $user) {
+    return $user && $user->role !== 'creator'; // Empêcher créateurs de réserver
+});
+```
+
+## GESTION DES ERREURS
+
+```php
+// Dans controllers
+try {
+    $this->authorize('update', $reservation);
+    // Action autorisée...
+} catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+    if (request()->expectsJson()) {
+        return response()->json(['error' => 'Action non autorisée'], 403);
+    }
+    return redirect()->back()->with('error', 'Action non autorisée');
+}
+```
+
+## PATTERN DE POLICY
+
+```php
+<?php
+
+namespace App\Policies;
+
+use App\Models\User;
+use App\Models\Reservation;
+use Illuminate\Auth\Access\HandlesAuthorization;
+
+class ReservationPolicy
+{
+    use HandlesAuthorization; // ← Garde ça pour être sûr
+
+    public function view(User $user, Reservation $reservation): bool
+    {
+        // Propriétaire de la réservation
+        if ($user->id === $reservation->user_id) {
+            return true;
+        }
+        
+        // Créateur concerné par la réservation
+        if ($user->creator && $user->creator->id === $reservation->creator_id) {
+            return true;
+        }
+        
+        // Admin
+        if ($user->role === 'admin') {
+            return true;
+        }
+        
+        return false;
+    }
+
+    public function create(User $user): bool
+    {
+        // Utilisateur connecté peut créer des réservations
+        return $user !== null;
+    }
+}
+```
+
+## NOTES IMPORTANTES
+
+- **Trait requis :** Utiliser `HandlesAuthorization` pour compatibilité
+- Toujours gérer le cas `$user` null pour les routes publiques
+- Vérifier les statuts des ressources (available, active, etc.)
+- Implémenter les délais d'annulation dans les policies
+- Empêcher les créateurs de réserver leurs propres slots
+- Utiliser les relations Eloquent pour optimiser les vérifications
+- Prévoir les cas d'admin avec accès complet
+- Tester toutes les policies avec différents rôles utilisateur

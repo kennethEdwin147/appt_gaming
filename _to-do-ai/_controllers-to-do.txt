@@ -1,0 +1,215 @@
+# Instructions Controllers - Gaming Platform
+
+## CONTROLLERS PRIORITAIRES
+
+Créer les controllers suivants dans `app/Http/Controllers/` :
+
+- **ReservationController** (CRUD + actions spéciales)
+- **TimeSlotController** (listing + booking)  
+- **CreatorController** (dashboard + gestion)
+- **EventTypeController** (CRUD pour créateurs)
+- **AvailabilityController** (gestion horaires)
+
+Créer les controllers suivants dans `app/Http/Controllers/Settings/` :
+
+- **CreatorSettingsController** (paramètres compte créateur)
+- **CustomerSettingsController** (paramètres compte client)
+
+## STRUCTURE GÉNÉRALE
+
+- **Namespace principal :** `App\Http\Controllers`
+- **Namespace settings :** `App\Http\Controllers\Settings`
+- **Services :** Utiliser les Services existants (ReservationService, AvailabilityService, EmailService)
+- **Validation :** Inline dans les controllers (pas de Form Requests pour l'instant)
+- **Réponses :** JSON pour API + redirect pour web selon les routes
+- **Gestion d'erreurs :** Try/catch avec messages appropriés
+- **Feedback :** Messages flash pour les utilisateurs web
+
+## MÉTHODES PAR CONTROLLER
+
+### ReservationController
+```php
+- index() : liste des réservations (filtrable par utilisateur/créateur)
+- store() : créer réservation via time_slot_id
+- show() : détails d'une réservation
+- cancel() : annuler réservation
+- confirm() : créateur confirme la réservation (action spéciale)
+- reschedule() : reprogrammer vers nouveau time_slot
+```
+
+### TimeSlotController
+```php
+- index() : slots disponibles pour un créateur/date
+- show() : détails d'un slot
+- block() : créateur bloque un slot
+- unblock() : créateur débloque un slot
+```
+
+### CreatorController
+```php
+- dashboard() : vue d'ensemble créateur (stats, réservations récentes)
+- reservations() : liste des réservations du créateur
+- availability() : gestion des horaires/availabilities
+- stats() : statistiques détaillées
+```
+
+### EventTypeController
+```php
+- index() : liste des event types du créateur
+- store() : créer nouvel event type
+- show() : détails event type
+- update() : modifier event type
+- destroy() : supprimer event type
+- toggle() : activer/désactiver
+```
+
+### AvailabilityController
+```php
+- index() : liste des availabilities du créateur
+- store() : créer nouvelle availability
+- update() : modifier availability
+- destroy() : supprimer availability
+- generateSlots() : déclencher génération time slots
+```
+
+### CreatorSettingsController
+```php
+- index() : page paramètres créateur
+- updateProfile() : modifier profil (bio, pseudo, etc.)
+- updateAvailability() : modifier horaires généraux
+- updatePayment() : paramètres Stripe Connect
+- updateNotifications() : préférences notifications
+- updatePassword() : changer mot de passe
+```
+
+### CustomerSettingsController
+```php
+- index() : page paramètres client
+- updateProfile() : modifier profil client
+- updateTimezone() : changer fuseau horaire
+- updateNotifications() : préférences notifications
+- updatePassword() : changer mot de passe
+```
+
+## SERVICES À UTILISER
+
+```php
+// Dans les constructors
+public function __construct(
+    private ReservationService $reservationService,
+    private AvailabilityService $availabilityService,
+    private EmailService $emailService
+) {}
+```
+
+## VALIDATION EXAMPLES
+
+```php
+// ReservationController::store()
+$request->validate([
+    'time_slot_id' => 'required|exists:time_slots,id',
+    'event_type_id' => 'required|exists:event_types,id',
+    'special_requests' => 'nullable|string|max:500',
+    'participants_count' => 'integer|min:1|max:4',
+]);
+
+// EventTypeController::store()
+$request->validate([
+    'name' => 'required|string|max:255',
+    'description' => 'nullable|string',
+    'default_duration' => 'required|integer|min:15|max:480',
+    'default_price' => 'required|numeric|min:0',
+    'session_type' => 'required|in:individual,group',
+    'meeting_platform' => 'required|string',
+]);
+```
+
+## GESTION D'ERREURS
+
+```php
+try {
+    $result = $this->service->method($data);
+    
+    // Success responses
+    if ($request->expectsJson()) {
+        return response()->json($result, 201);
+    }
+    return redirect()->back()->with('success', 'Action réussie');
+    
+} catch (\Exception $e) {
+    // Error responses
+    if ($request->expectsJson()) {
+        return response()->json(['error' => $e->getMessage()], 400);
+    }
+    return redirect()->back()->with('error', $e->getMessage());
+}
+```
+
+## MIDDLEWARE À APPLIQUER
+
+- `auth:web` pour toutes les routes web
+- `CreatorAuth` pour CreatorController et actions créateur
+- `throttle:api` pour les routes API
+
+## ENUMS À UTILISER
+
+- `EventDuration` pour les durées
+- `MaxParticipants` pour le nombre de participants
+- `MeetingPlatform` pour les plateformes de réunion
+- `PaymentProvider` pour les fournisseurs de paiement
+- `Timezone` pour les fuseaux horaires
+
+## PATTERN DE CONTROLLER
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Controllers\Controller;
+use App\Services\ReservationService;
+use Illuminate\Http\Request;
+
+class ReservationController extends Controller
+{
+    public function __construct(
+        private ReservationService $reservationService
+    ) {}
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'time_slot_id' => 'required|exists:time_slots,id',
+            'event_type_id' => 'required|exists:event_types,id',
+        ]);
+
+        try {
+            $reservation = $this->reservationService->createReservation($request->all());
+            
+            if ($request->expectsJson()) {
+                return response()->json($reservation, 201);
+            }
+            
+            return redirect()->route('reservations.show', $reservation)
+                           ->with('success', 'Réservation créée avec succès');
+                           
+        } catch (\Exception $e) {
+            if ($request->expectsJson()) {
+                return response()->json(['error' => $e->getMessage()], 400);
+            }
+            
+            return redirect()->back()
+                           ->with('error', $e->getMessage())
+                           ->withInput();
+        }
+    }
+}
+```
+
+## NOTES IMPORTANTES
+
+- Utiliser les relations Eloquent pour charger les données liées
+- Implementer la pagination pour les listes
+- Ajouter des scopes dans les queries (ex: `available()`, `upcoming()`)
+- Respecter les conventions REST pour les noms de méthodes
+- Prévoir les cas d'erreur (ressource non trouvée, accès refusé, etc.)
