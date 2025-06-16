@@ -1,0 +1,117 @@
+# Instructions Setup Resend - Gaming Platform
+
+## OBJECTIF
+
+Configurer Resend comme service d'envoi d'emails pour l'application Laravel Gaming Platform.
+
+## ÉTAPES À SUIVRE
+
+### 1. INSTALLATION DU PACKAGE
+
+```bash
+composer require resend/resend-laravel
+```
+
+### 2. CONFIGURATION ENVIRONNEMENT
+
+Ajouter/modifier ces variables dans le fichier `.env` :
+
+```env
+MAIL_MAILER=resend
+RESEND_API_KEY=re_KoNRyUKM_3sXxGBdQzQMPdbVSCJ4Z66Ke
+MAIL_FROM_ADDRESS=onboarding@resend.dev
+MAIL_FROM_NAME="Gaming Platform"
+```
+
+### 3. OPTIONNEL - PUBLIER LA CONFIGURATION
+
+Si besoin de customiser davantage :
+
+```bash
+php artisan vendor:publish --tag=resend-config
+```
+
+### 4. VÉRIFIER QUE ÇA FONCTIONNE
+
+#### Test rapide via Tinker
+```bash
+php artisan tinker
+```
+
+```php
+Mail::raw('Test email from Laravel + Resend!', function ($message) {
+    $message->to('test@example.com')->subject('Test Laravel + Resend');
+});
+```
+
+#### Test des emails de vérification
+```php
+// Dans un controller ou tinker
+$user = User::first();
+$user->sendEmailVerificationNotification();
+```
+
+## EMAILS QUI UTILISENT AUTOMATIQUEMENT RESEND
+
+Après cette configuration, tous ces emails passeront par Resend :
+
+- ✅ **Email verification** (`$user->sendEmailVerificationNotification()`)
+- ✅ **Password reset** (Laravel natif)
+- ✅ **EmailService notifications** (ReservationConfirmation, etc.)
+- ✅ **Toutes les notifications Laravel** via `Mail::` facade
+
+## STRUCTURE DES EMAILS
+
+Les emails utiliseront automatiquement :
+- **From:** `Gaming Platform <onboarding@resend.dev>`
+- **Driver:** Resend API
+- **Templates:** Layouts Laravel standards
+
+## DOMAINE PERSONNALISÉ (PLUS TARD)
+
+Pour utiliser ton propre domaine plus tard :
+
+1. Acheter/configurer domaine
+2. Ajouter records DNS dans Resend dashboard
+3. Changer `MAIL_FROM_ADDRESS=noreply@ton-domaine.com`
+
+## NOTES IMPORTANTES
+
+- **Gratuit jusqu'à 3000 emails/mois** avec Resend
+- **Deliverability excellente** - Resend gère tout
+- **Pas de changement de code** - Juste la configuration
+- **Compatible** avec tous les systèmes Laravel existants
+- **Logs disponibles** dans Resend dashboard
+
+## VÉRIFICATION DU SETUP
+
+Après configuration, vérifier que :
+
+1. ✅ Les emails de vérification sont envoyés
+2. ✅ Les emails de reset password fonctionnent  
+3. ✅ Les notifications de réservation marchent
+4. ✅ Dashboard Resend montre les emails envoyés
+
+## TROUBLESHOOTING
+
+Si problèmes :
+
+1. **Vérifier la clé API** dans .env
+2. **Clearer le cache config** : `php artisan config:clear`
+3. **Vérifier les logs** : `tail -f storage/logs/laravel.log`
+4. **Tester en mode sync** : `QUEUE_CONNECTION=sync` dans .env
+
+## EXEMPLE D'UTILISATION DANS LE CODE
+
+```php
+// EmailService - Ça marche automatiquement
+$user->notify(new ReservationConfirmation($reservation));
+
+// Mail facade - Ça marche automatiquement  
+Mail::to($user)->send(new WelcomeEmail($user));
+
+// Email verification - Ça marche automatiquement
+$user->sendEmailVerificationNotification();
+```
+
+**Aucun changement de code nécessaire - Juste la configuration !**
