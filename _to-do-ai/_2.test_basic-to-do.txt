@@ -1,0 +1,591 @@
+# Instructions Premiers Tests - Gaming Platform
+
+## TESTS UNIT À CRÉER EN PRIORITÉ
+
+Créer les tests suivants dans `tests/Unit/` :
+
+- **Services/AvailabilityServiceTest.php** (critique - génération time slots)
+- **Services/ReservationServiceTest.php** (logique métier principale)
+- **Models/TimeSlotTest.php** (relations et scopes)
+- **Models/CreatorTest.php** (relations et méthodes)
+
+## STRUCTURE DES DOSSIERS
+
+```
+tests/
+├── Unit/
+│   ├── Services/
+│   │   ├── AvailabilityServiceTest.php
+│   │   ├── ReservationServiceTest.php
+│   │   └── EmailServiceTest.php
+│   └── Models/
+│       ├── TimeSlotTest.php
+│       ├── CreatorTest.php
+│       ├── ReservationTest.php
+│       └── UserTest.php
+├── Feature/
+│   └── (pour plus tard)
+└── Browser/
+    └── (pour plus tard)
+```
+
+## SETUP DE BASE
+
+### Configuration PHPUnit
+```php
+// tests/TestCase.php - Ajouter ces traits
+<?php
+
+namespace Tests;
+
+use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+abstract class TestCase extends BaseTestCase
+{
+    use CreatesApplication, RefreshDatabase;
+    
+    protected function setUp(): void
+    {
+        parent::setUp();
+        
+        // Désactiver les événements pour les tests
+        \Event::fake();
+        
+        // Désactiver les emails pour les tests
+        \Mail::fake();
+    }
+}
+```
+
+### Trait pour créer des données
+```php
+// tests/Traits/CreatesTestData.php
+<?php
+
+namespace Tests\Traits;
+
+use App\Models\User;
+use App\Models\Creator;
+use App\Models\Customer;
+use App\Models\EventType;
+use App\Models\Availability;
+use App\Models\TimeSlot;
+
+trait CreatesTestData
+{
+    protected function createUser($role = 'customer', $attributes = [])
+    {
+        return User::factory()->create(array_merge([
+            'role' => $role,
+            'email_verified_at' => now(),
+        ], $attributes));
+    }
+    
+    protected function createCreator($attributes = [])
+    {
+        $user = $this->createUser('creator');
+        return Creator::factory()->create(array_merge([
+            'user_id' => $user->id,
+            'timezone' => 'America/Toronto',
+        ], $attributes));
+    }
+    
+    protected function createCustomer($attributes = [])
+    {
+        $user = $this->createUser('customer');
+        return Customer::factory()->create(array_merge([
+            'user_id' => $user->id,
+        ], $attributes));
+    }
+    
+    protected function createEventType($creator = null, $attributes = [])
+    {
+        $creator = $creator ?: $this->createCreator();
+        
+        return EventType::factory()->create(array_merge([
+            'creator_id' => $creator->id,
+            'name' => 'Coaching Valorant 1v1',
+            'default_duration' => 60,
+            'default_price' => 50.00,
+            'session_type' => 'individual',
+            'is_active' => true,
+        ], $attributes));
+    }
+    
+    protected function createAvailability($creator = null, $attributes = [])
+    {
+        $creator = $creator ?: $this->createCreator();
+        
+        return Availability::factory()->create(array_merge([
+            'creator_id' => $creator->id,
+            'day_of_week' => 'monday',
+            'start_time' => '09:00',
+            'end_time' => '17:00',
+            'is_active' => true,
+        ], $attributes));
+    }
+    
+    protected function createTimeSlot($creator = null, $attributes = [])
+    {
+        $creator = $creator ?: $this->createCreator();
+        
+        return TimeSlot::factory()->create(array_merge([
+            'creator_id' => $creator->id,
+            'start_time' => now()->addDay()->setHour(10)->setMinute(0),
+            'end_time' => now()->addDay()->setHour(10)->setMinute(30),
+            'status' => 'available',
+            'timezone' => 'America/Toronto',
+            'generated_for_date' => now()->addDay()->format('Y-m-d'),
+        ], $attributes));
+    }
+}
+```
+
+## TESTS PRIORITAIRES
+
+### 1. AvailabilityServiceTest.php
+```php
+<?php
+
+namespace Tests\Unit\Services;
+
+use Tests\TestCase;
+use Tests\Traits\CreatesTestData;
+use App\Services\AvailabilityService;
+use App\Models\TimeSlot;
+use Carbon\Carbon;
+
+class AvailabilityServiceTest extends TestCase
+{
+    use CreatesTestData;
+    
+    protected AvailabilityService $availabilityService;
+    
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->availabilityService = app(AvailabilityService::class);
+    }
+    
+    /** @test */
+    public function it_can_generate_time_slots_for_creator()
+    {
+        // Arrange
+        $creator = $this->createCreator();
+        $this->createAvailability($creator, [
+            'day_of_week' => 'monday',
+            'start_time' => '10:00',
+            'end_time' => '12:00',
+        ]);
+        
+        $startDate = Carbon::parse('next monday');
+        $endDate = $startDate->copy()->addDays(7);
+        
+        // Act
+        $slots = $this->availabilityService->generateTimeSlotsForCreator(
+            $creator->id,
+            $startDate,
+            $endDate
+        );
+        
+        // Assert
+        $this->assertNotEmpty($slots);
+        $this->assertContainsOnlyInstancesOf(TimeSlot::class, $slots);
+        
+        // Vérifier qu'on a des slots pour le lundi
+        $mondaySlots = collect($slots)->filter(function ($slot) use ($startDate) {
+            return $slot->start_time->format('Y-m-d') === $startDate->format('Y-m-d');
+        });
+        
+        $this->assertGreaterThan(0, $mondaySlots->count());
+    }
+    
+    /** @test */
+    public function it_can_get_available_slots_for_event_type()
+    {
+        // Arrange
+        $creator = $this->createCreator();
+        $eventType = $this->createEventType($creator);
+        $this->createTimeSlot($creator, ['status' => 'available']);
+        $this->createTimeSlot($creator, ['status' => 'booked']); // Ne doit pas apparaître
+        
+        $startDate = Carbon::today();
+        $endDate = Carbon::today()->addDays(7);
+        
+        // Act
+        $slots = $this->availabilityService->getAvailableSlots(
+            $creator->id,
+            $eventType->id,
+            $startDate,
+            $endDate,
+            'America/Toronto'
+        );
+        
+        // Assert
+        $this->assertIsArray($slots);
+        
+        // Vérifier qu'on a seulement les slots disponibles
+        foreach ($slots as $daySlots) {
+            foreach ($daySlots as $slot) {
+                $this->assertArrayHasKey('id', $slot);
+                $this->assertArrayHasKey('start_time', $slot);
+                $this->assertArrayHasKey('display_time', $slot);
+            }
+        }
+    }
+    
+    /** @test */
+    public function it_can_book_a_time_slot()
+    {
+        // Arrange
+        $timeSlot = $this->createTimeSlot();
+        $this->assertEquals('available', $timeSlot->status);
+        
+        // Act
+        $result = $this->availabilityService->bookTimeSlot($timeSlot->id);
+        
+        // Assert
+        $this->assertTrue($result);
+        $timeSlot->refresh();
+        $this->assertEquals('booked', $timeSlot->status);
+    }
+    
+    /** @test */
+    public function it_cannot_book_unavailable_time_slot()
+    {
+        // Arrange
+        $timeSlot = $this->createTimeSlot(['status' => 'booked']);
+        
+        // Act
+        $result = $this->availabilityService->bookTimeSlot($timeSlot->id);
+        
+        // Assert
+        $this->assertFalse($result);
+    }
+    
+    /** @test */
+    public function it_can_release_booked_time_slot()
+    {
+        // Arrange
+        $timeSlot = $this->createTimeSlot(['status' => 'booked']);
+        
+        // Act
+        $result = $this->availabilityService->releaseTimeSlot($timeSlot->id);
+        
+        // Assert
+        $this->assertTrue($result);
+        $timeSlot->refresh();
+        $this->assertEquals('available', $timeSlot->status);
+    }
+    
+    /** @test */
+    public function it_can_get_creator_slots_stats()
+    {
+        // Arrange
+        $creator = $this->createCreator();
+        $this->createTimeSlot($creator, ['status' => 'available']);
+        $this->createTimeSlot($creator, ['status' => 'booked']);
+        $this->createTimeSlot($creator, ['status' => 'blocked']);
+        
+        // Act
+        $stats = $this->availabilityService->getCreatorSlotsStats($creator->id);
+        
+        // Assert
+        $this->assertArrayHasKey('total', $stats);
+        $this->assertArrayHasKey('available', $stats);
+        $this->assertArrayHasKey('booked', $stats);
+        $this->assertArrayHasKey('blocked', $stats);
+        $this->assertArrayHasKey('utilization_rate', $stats);
+        
+        $this->assertEquals(3, $stats['total']);
+        $this->assertEquals(1, $stats['available']);
+        $this->assertEquals(1, $stats['booked']);
+        $this->assertEquals(1, $stats['blocked']);
+    }
+}
+```
+
+### 2. ReservationServiceTest.php
+```php
+<?php
+
+namespace Tests\Unit\Services;
+
+use Tests\TestCase;
+use Tests\Traits\CreatesTestData;
+use App\Services\ReservationService;
+use App\Models\Reservation;
+
+class ReservationServiceTest extends TestCase
+{
+    use CreatesTestData;
+    
+    protected ReservationService $reservationService;
+    
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->reservationService = app(ReservationService::class);
+    }
+    
+    /** @test */
+    public function it_can_create_reservation()
+    {
+        // Arrange
+        $creator = $this->createCreator();
+        $customer = $this->createCustomer();
+        $eventType = $this->createEventType($creator);
+        $timeSlot = $this->createTimeSlot($creator);
+        
+        $data = [
+            'user_id' => $customer->user_id,
+            'creator_id' => $creator->id,
+            'event_type_id' => $eventType->id,
+            'time_slot_id' => $timeSlot->id,
+            'timezone' => 'America/Toronto',
+            'special_requests' => 'Coaching débutant',
+        ];
+        
+        // Act
+        $reservation = $this->reservationService->createReservation($data);
+        
+        // Assert
+        $this->assertInstanceOf(Reservation::class, $reservation);
+        $this->assertEquals('pending', $reservation->status);
+        $this->assertEquals($customer->user_id, $reservation->user_id);
+        $this->assertEquals($creator->id, $reservation->creator_id);
+        
+        // Vérifier que le time slot est marqué comme réservé
+        $timeSlot->refresh();
+        $this->assertEquals('booked', $timeSlot->status);
+    }
+    
+    /** @test */
+    public function it_cannot_create_reservation_for_unavailable_slot()
+    {
+        // Arrange
+        $creator = $this->createCreator();
+        $customer = $this->createCustomer();
+        $eventType = $this->createEventType($creator);
+        $timeSlot = $this->createTimeSlot($creator, ['status' => 'booked']);
+        
+        $data = [
+            'user_id' => $customer->user_id,
+            'creator_id' => $creator->id,
+            'event_type_id' => $eventType->id,
+            'time_slot_id' => $timeSlot->id,
+            'timezone' => 'America/Toronto',
+        ];
+        
+        // Act & Assert
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('Ce créneau n\'est plus disponible');
+        
+        $this->reservationService->createReservation($data);
+    }
+    
+    /** @test */
+    public function it_can_cancel_reservation()
+    {
+        // Arrange
+        $reservation = $this->createReservationWithSlot();
+        
+        // Act
+        $result = $this->reservationService->cancelReservation($reservation, 'Annulation test');
+        
+        // Assert
+        $this->assertTrue($result);
+        $reservation->refresh();
+        $this->assertEquals('cancelled', $reservation->status);
+        $this->assertNotNull($reservation->cancelled_at);
+        
+        // Vérifier que le time slot est libéré
+        $reservation->timeSlot->refresh();
+        $this->assertEquals('available', $reservation->timeSlot->status);
+    }
+    
+    /** @test */
+    public function it_can_confirm_reservation()
+    {
+        // Arrange
+        $reservation = $this->createReservationWithSlot(['status' => 'pending']);
+        
+        // Act
+        $result = $this->reservationService->confirmReservation($reservation);
+        
+        // Assert
+        $this->assertTrue($result);
+        $reservation->refresh();
+        $this->assertEquals('confirmed', $reservation->status);
+        $this->assertNotNull($reservation->confirmed_at);
+    }
+    
+    /** @test */
+    public function it_can_get_creator_reservation_stats()
+    {
+        // Arrange
+        $creator = $this->createCreator();
+        $this->createReservationWithSlot(['creator_id' => $creator->id, 'status' => 'completed']);
+        $this->createReservationWithSlot(['creator_id' => $creator->id, 'status' => 'cancelled']);
+        $this->createReservationWithSlot(['creator_id' => $creator->id, 'status' => 'no_show_customer']);
+        
+        // Act
+        $stats = $this->reservationService->getCreatorReservationStats($creator->id);
+        
+        // Assert
+        $this->assertArrayHasKey('total_reservations', $stats);
+        $this->assertArrayHasKey('completed', $stats);
+        $this->assertArrayHasKey('cancelled', $stats);
+        $this->assertArrayHasKey('completion_rate', $stats);
+        
+        $this->assertEquals(3, $stats['total_reservations']);
+        $this->assertEquals(1, $stats['completed']);
+        $this->assertEquals(1, $stats['cancelled']);
+    }
+    
+    protected function createReservationWithSlot($attributes = [])
+    {
+        $creator = $this->createCreator();
+        $customer = $this->createCustomer();
+        $eventType = $this->createEventType($creator);
+        $timeSlot = $this->createTimeSlot($creator);
+        
+        return Reservation::factory()->create(array_merge([
+            'user_id' => $customer->user_id,
+            'creator_id' => $creator->id,
+            'event_type_id' => $eventType->id,
+            'time_slot_id' => $timeSlot->id,
+            'reserved_datetime' => $timeSlot->start_time,
+            'price_paid' => $eventType->default_price,
+        ], $attributes));
+    }
+}
+```
+
+### 3. TimeSlotTest.php (Model)
+```php
+<?php
+
+namespace Tests\Unit\Models;
+
+use Tests\TestCase;
+use Tests\Traits\CreatesTestData;
+use App\Models\TimeSlot;
+
+class TimeSlotTest extends TestCase
+{
+    use CreatesTestData;
+    
+    /** @test */
+    public function it_belongs_to_creator()
+    {
+        // Arrange
+        $creator = $this->createCreator();
+        $timeSlot = $this->createTimeSlot($creator);
+        
+        // Act & Assert
+        $this->assertInstanceOf(Creator::class, $timeSlot->creator);
+        $this->assertEquals($creator->id, $timeSlot->creator->id);
+    }
+    
+    /** @test */
+    public function it_has_available_scope()
+    {
+        // Arrange
+        $creator = $this->createCreator();
+        $availableSlot = $this->createTimeSlot($creator, ['status' => 'available']);
+        $bookedSlot = $this->createTimeSlot($creator, ['status' => 'booked']);
+        
+        // Act
+        $availableSlots = TimeSlot::available()->get();
+        
+        // Assert
+        $this->assertCount(1, $availableSlots);
+        $this->assertEquals($availableSlot->id, $availableSlots->first()->id);
+    }
+    
+    /** @test */
+    public function it_has_for_creator_scope()
+    {
+        // Arrange
+        $creator1 = $this->createCreator();
+        $creator2 = $this->createCreator();
+        $slot1 = $this->createTimeSlot($creator1);
+        $slot2 = $this->createTimeSlot($creator2);
+        
+        // Act
+        $creator1Slots = TimeSlot::forCreator($creator1->id)->get();
+        
+        // Assert
+        $this->assertCount(1, $creator1Slots);
+        $this->assertEquals($slot1->id, $creator1Slots->first()->id);
+    }
+    
+    /** @test */
+    public function it_has_for_date_scope()
+    {
+        // Arrange
+        $creator = $this->createCreator();
+        $today = now();
+        $tomorrow = now()->addDay();
+        
+        $todaySlot = $this->createTimeSlot($creator, [
+            'start_time' => $today->setHour(10),
+            'generated_for_date' => $today->format('Y-m-d'),
+        ]);
+        
+        $tomorrowSlot = $this->createTimeSlot($creator, [
+            'start_time' => $tomorrow->setHour(10),
+            'generated_for_date' => $tomorrow->format('Y-m-d'),
+        ]);
+        
+        // Act
+        $todaySlots = TimeSlot::forDate($today->format('Y-m-d'))->get();
+        
+        // Assert
+        $this->assertCount(1, $todaySlots);
+        $this->assertEquals($todaySlot->id, $todaySlots->first()->id);
+    }
+}
+```
+
+## COMMANDES POUR LANCER LES TESTS
+
+```bash
+# Installer PHPUnit si pas déjà fait
+composer require --dev phpunit/phpunit
+
+# Lancer tous les tests
+php artisan test
+
+# Lancer seulement les tests Unit
+php artisan test tests/Unit
+
+# Lancer un test spécifique
+php artisan test tests/Unit/Services/AvailabilityServiceTest.php
+
+# Lancer avec coverage (si xdebug installé)
+php artisan test --coverage
+
+# Lancer en mode verbose
+php artisan test --verbose
+```
+
+## NOTES IMPORTANTES
+
+- Utiliser `RefreshDatabase` trait pour reset DB entre tests
+- Faker les emails avec `Mail::fake()` 
+- Utiliser les factories pour créer des données
+- Tester les cas d'erreur (exceptions)
+- Vérifier les effets de bord (time slot status, etc.)
+- Garder les tests simples et focalisés
+- Nommer les tests clairement (`it_can_do_something`)
+- Arranger, Act, Assert pattern
+
+## PROCHAINES ÉTAPES  (a faire plus tard prends en consciences mais ne les fais pas):
+
+Après ces tests Unit (a faire plus tard prends en consciences mais ne les fais pas):
+1. Tests Feature pour les controllers
+2. Tests Browser avec Dusk pour les flows complets
+3. Tests d'intégration pour les services externes (emails, etc.)
