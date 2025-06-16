@@ -8,18 +8,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <link href="{{ asset('admin_theme/css/vendors/flatpickr.min.css') }}" rel="stylesheet">
     <link href="{{ asset('admin_theme/style.css') }}" rel="stylesheet">
-    <script>
-        if (localStorage.getItem('dark-mode') === 'false' || !('dark-mode' in localStorage)) {
-            document.querySelector('html').classList.remove('dark');
-            document.querySelector('html').style.colorScheme = 'light';
-        } else {
-            document.querySelector('html').classList.add('dark');
-            document.querySelector('html').style.colorScheme = 'dark';
-        }
-    </script>
 </head>
 
-<body class="font-inter antialiased bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400">
+<body class="font-inter antialiased bg-gray-100 text-gray-600">
 
     <script>
         if (localStorage.getItem('sidebar-expanded') == 'true') {
@@ -29,7 +20,7 @@
         }
     </script>
 
-    <main class="bg-white dark:bg-gray-900">
+    <main class="bg-white ">
 
         <div class="relative flex">
 
@@ -52,7 +43,7 @@
 
                     <div class="max-w-sm mx-auto w-full px-4 py-8">
 
-                        <h1 class="text-3xl text-gray-800 dark:text-gray-100 font-bold mb-6">{{ __('Welcome back!') }}</h1>
+                        <h1 class="text-3xl text-gray-800  font-bold mb-6">{{ __('Welcome back!') }}</h1>
 
                         @if (session('success'))
                             <div class="bg-green-100 text-green-600 px-3 py-2 rounded mb-4">
@@ -91,13 +82,13 @@
                                         <a class="text-sm underline hover:no-underline" href="{{ route('password.request') }}">{{ __('Forgot Password?') }}</a>
                                     @endif
                                 </div>
-                                <button type="submit" class="btn bg-gray-900 text-gray-100 hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-800 dark:hover:bg-white ml-3">{{ __('Sign In') }}</button>
+                                <button type="submit" class="btn bg-gray-900 text-gray-100 hover:bg-gray-800    ml-3">{{ __('Sign In') }}</button>
                             </div>
                         </form>
                         <!-- Footer -->
-                        <div class="pt-5 mt-6 border-t border-gray-100 dark:border-gray-700/60">
+                        <div class="pt-5 mt-6 border-t border-gray-100 ">
                             <div class="text-sm">
-                                {{ __('Don\'t you have an account?') }} <a class="font-medium text-violet-500 hover:text-violet-600 dark:hover:text-violet-400" href="{{ route('register') }}">{{ __('Sign Up') }}</a>
+                                {{ __('Don\'t you have an account?') }} <a class="font-medium text-violet-500 hover:text-violet-600 " href="{{ route('choose-role') }}">{{ __('Sign Up') }}</a>
                             </div>
                             <!-- Warning -->
                             <div class="mt-5">

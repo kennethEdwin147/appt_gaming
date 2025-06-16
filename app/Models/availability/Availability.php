@@ -2,7 +2,7 @@
 
 namespace App\Models\availability;
 
-use App\Models\schedule\Schedule;
+use App\Models\creator\Creator;
 use App\Models\reservation\Reservation;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -19,12 +19,10 @@ class Availability extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'schedule_id',
+        'creator_id',
         'day_of_week',
         'start_time',
         'end_time',
-        'effective_from',
-        'effective_until',
         'is_active',
     ];
 
@@ -38,18 +36,16 @@ class Availability extends Model
         return [
             'start_time' => 'datetime:H:i:s',
             'end_time' => 'datetime:H:i:s',
-            'effective_from' => 'date',
-            'effective_until' => 'date',
             'is_active' => 'boolean',
         ];
     }
 
     /**
-     * Get the schedule that owns the availability.
+     * Get the creator that owns the availability.
      */
-    public function schedule(): BelongsTo
+    public function creator(): BelongsTo
     {
-        return $this->belongsTo(Schedule::class);
+        return $this->belongsTo(Creator::class);
     }
 
     /**
@@ -68,19 +64,6 @@ class Availability extends Model
         return $query->where('is_active', true);
     }
 
-    /**
-     * Scope for current effective period.
-     */
-    public function scopeCurrentlyEffective($query)
-    {
-        return $query->where(function($q) {
-            $q->whereNull('effective_from')
-              ->orWhere('effective_from', '<=', now()->toDateString());
-        })->where(function($q) {
-            $q->whereNull('effective_until')
-              ->orWhere('effective_until', '>=', now()->toDateString());
-        });
-    }
 
     /**
      * Scope for specific day of week.
@@ -102,9 +85,9 @@ class Availability extends Model
     /**
      * Scope for availabilities with no conflicts.
      */
-    public function scopeWithoutConflicts($query, $scheduleId, $dayOfWeek, $startTime, $endTime, $excludeId = null)
+    public function scopeWithoutConflicts($query, $creatorId, $dayOfWeek, $startTime, $endTime, $excludeId = null)
     {
-        return $query->where('schedule_id', $scheduleId)
+        return $query->where('creator_id', $creatorId)
                     ->where('day_of_week', $dayOfWeek)
                     ->where(function($q) use ($startTime, $endTime) {
                         $q->where(function($subQ) use ($startTime, $endTime) {
@@ -118,24 +101,11 @@ class Availability extends Model
     }
 
     /**
-     * Check if availability is currently effective.
-     */
-    public function isCurrentlyEffective(): bool
-    {
-        $now = now()->toDateString();
-        
-        $fromValid = is_null($this->effective_from) || $this->effective_from <= $now;
-        $untilValid = is_null($this->effective_until) || $this->effective_until >= $now;
-        
-        return $fromValid && $untilValid;
-    }
-
-    /**
-     * Check if availability is active and effective.
+     * Check if availability is active and available.
      */
     public function isAvailable(): bool
     {
-        return $this->is_active && $this->isCurrentlyEffective();
+        return $this->is_active;
     }
 
     /**

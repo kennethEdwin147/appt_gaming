@@ -3,7 +3,7 @@
 namespace App\Models\creator;
 
 use App\Models\User;
-use App\Models\schedule\Schedule;
+use App\Models\availability\Availability;
 use App\Models\event_type\EventType;
 use App\Models\reservation\Reservation;
 use App\Models\public_profile\CreatorProfile;
@@ -64,11 +64,11 @@ class Creator extends Model
     }
 
     /**
-     * Get the schedules for the creator.
+     * Get the availabilities for the creator.
      */
-    public function schedules(): HasMany
+    public function availabilities(): HasMany
     {
-        return $this->hasMany(Schedule::class, 'creator_id', 'user_id');
+        return $this->hasMany(Availability::class);
     }
 
     /**

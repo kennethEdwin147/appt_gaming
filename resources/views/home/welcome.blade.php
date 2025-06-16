@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<<<<<<< HEAD
   <!-- Required Meta Tags Always Come First -->
   <meta charset="utf-8">
   <meta name="robots" content="max-snippet:-1, max-image-preview:large, max-video-preview:-1">
@@ -56,8 +55,8 @@
       </div>
 
       <div class="flex items-center gap-1 md:order-4 md:ms-4">
-        <a class="w-full sm:w-auto whitespace-nowrap py-2 px-3 inline-flex justify-center items-center gap-x-2 text-sm font-medium rounded-full border border-transparent bg-gray-800 text-white hover:bg-gray-900 focus:outline-hidden focus:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none" href="#">
-          Book a call
+        <a class="w-full sm:w-auto whitespace-nowrap py-2 px-3 inline-flex justify-center items-center gap-x-2 text-sm font-medium rounded-full border border-transparent bg-gray-800 text-white hover:bg-gray-900 focus:outline-hidden focus:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none" href="{{ route('login') }}">
+          Connexion
         </a>
 
         <div class="md:hidden">
@@ -80,8 +79,8 @@
       <div id="hs-navbar-header-floating" class="hidden hs-collapse overflow-hidden transition-all duration-300 basis-full grow md:block" aria-labelledby="hs-navbar-header-floating-collapse">
         <div class="flex flex-col md:flex-row md:items-center md:justify-end gap-2 md:gap-3 mt-3 md:mt-0 py-2 md:py-0 md:ps-7">
           <a class="py-0.5 md:py-3 px-4 md:px-1 border-s-2 md:border-s-0 md:border-b-2 border-gray-800 font-medium text-gray-800 hover:text-gray-800 focus:outline-hidden" href="index.html" aria-current="page">Home</a>
-          <a class="py-0.5 md:py-3 px-4 md:px-1 border-s-2 md:border-s-0 md:border-b-2 border-transparent text-gray-500 hover:text-gray-800 focus:outline-hidden" href="work.html">Work</a>
-          <a class="py-0.5 md:py-3 px-4 md:px-1 border-s-2 md:border-s-0 md:border-b-2 border-transparent text-gray-500 hover:text-gray-800 focus:outline-hidden" href="reviews.html">Reviews</a>
+          <a class="py-0.5 md:py-3 px-4 md:px-1 border-s-2 md:border-s-0 md:border-b-2 border-transparent text-gray-500 hover:text-gray-800 focus:outline-hidden" href="work.html">Créateurs</a>
+          <a class="py-0.5 md:py-3 px-4 md:px-1 border-s-2 md:border-s-0 md:border-b-2 border-transparent text-gray-500 hover:text-gray-800 focus:outline-hidden" href="{{ route('choose-role') }}">S'inscrire</a>
         </div>
       </div>
     </nav>
@@ -595,16 +594,8 @@
 
   <!-- JS THIRD PARTY PLUGINS -->
   <!-- Google Analytics. Global site tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-B73TDMXKF5"></script>
   <script>
-    window.dataLayer = window.dataLayer || [];
-  
-    function gtag() {
-      dataLayer.push(arguments);
-    }
-  
-    gtag('js', new Date());
-    gtag('config', 'G-B73TDMXKF5');
+
   </script>
 </body>
 </html>

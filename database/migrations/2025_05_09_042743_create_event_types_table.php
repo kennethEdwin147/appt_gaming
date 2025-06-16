@@ -27,7 +27,6 @@ return new class extends Migration
 
             $table->boolean('is_active')->default(true);
             $table->foreignId('creator_id')->constrained('creators')->onDelete('cascade');
-            $table->foreignId('schedule_id')->constrained()->onDelete('cascade')->comment('Horaire associé à ce type d\'événement');
             $table->timestamps();
             $table->unique(['name', 'creator_id']);
         });

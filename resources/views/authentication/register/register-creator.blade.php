@@ -8,19 +8,10 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <link href="{{ asset('admin_theme/css/vendors/flatpickr.min.css') }}" rel="stylesheet">
     <link href="{{ asset('admin_theme/style.css') }}" rel="stylesheet">
-    <link href="{{ asset('build/assets/app-ko3ue-kN.css') }}" rel="stylesheet">
-    <script>
-        if (localStorage.getItem('dark-mode') === 'false' || !('dark-mode' in localStorage)) {
-            document.querySelector('html').classList.remove('dark');
-            document.querySelector('html').style.colorScheme = 'light';
-        } else {
-            document.querySelector('html').classList.add('dark');
-            document.querySelector('html').style.colorScheme = 'dark';
-        }
-    </script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
-<body class="font-inter antialiased bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400">
+<body class="font-inter antialiased bg-gray-100 text-gray-600">
 
     <script>
         if (localStorage.getItem('sidebar-expanded') == 'true') {
@@ -30,7 +21,7 @@
         }
     </script>
 
-    <main class="bg-white dark:bg-gray-900">
+    <main class="bg-white ">
 
         <div class="relative flex">
 
@@ -53,7 +44,7 @@
 
                     <div class="max-w-sm mx-auto w-full px-4 py-8">
 
-                        <h1 class="text-3xl text-gray-800 dark:text-gray-100 font-bold mb-6">{{ __('Créer un compte Créateur') }}</h1>
+                        <h1 class="text-3xl text-gray-800  font-bold mb-6">{{ __('Créer un compte Créateur') }}</h1>
                         <!-- Form -->
                         <form method="POST" action="{{ route('register.creator') }}" id="creatorRegisterForm">
                             @csrf
@@ -112,9 +103,9 @@
                             </div>
                         </form>
                         <!-- Footer -->
-                        <div class="pt-5 mt-6 border-t border-gray-100 dark:border-gray-700/60">
+                        <div class="pt-5 mt-6 border-t border-gray-100 ">
                             <div class="text-sm">
-                                {{ __('Tu as dejà un compte ?') }} <a class="font-medium text-violet-500 hover:text-violet-600 dark:hover:text-violet-400" href="{{ route('login') }}">{{ __('Connectes toi') }}</a>
+                                {{ __('Tu as dejà un compte ?') }} <a class="font-medium text-violet-500 hover:text-violet-600 " href="{{ route('login') }}">{{ __('Connectes toi') }}</a>
                             </div>
                         </div>
 
@@ -139,15 +130,15 @@
     <!-- Modal de succès pour la création de compte -->
     <div class="modal micromodal-slide" id="modal-creator-success" aria-hidden="true" inert>
         <div class="modal__overlay fixed inset-0 bg-gray-900 bg-opacity-70 z-50" data-micromodal-close>
-            <div class="modal__container relative bg-white dark:bg-gray-800 rounded shadow-lg max-w-md w-full mx-4 p-6" role="dialog" aria-modal="true" aria-labelledby="modal-creator-success-title">
+            <div class="modal__container relative bg-white  rounded shadow-lg max-w-md w-full mx-4 p-6" role="dialog" aria-modal="true" aria-labelledby="modal-creator-success-title">
                 <div class="text-center">
                     <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 text-emerald-500 mb-4">
                         <svg class="w-8 h-8 fill-current" viewBox="0 0 16 16">
                             <path d="M8 0C3.6 0 0 3.6 0 8s3.6 8 8 8 8-3.6 8-8-3.6-8-8-8zM7 11.4L3.6 8 5 6.6l2 2 4-4L12.4 6 7 11.4z"></path>
                         </svg>
                     </div>
-                    <h3 id="modal-creator-success-title" class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-2">Compte créateur créé !</h3>
-                    <div class="text-gray-600 dark:text-gray-400 mb-6">
+                    <h3 id="modal-creator-success-title" class="text-xl font-bold text-gray-800  mb-2">Compte créateur créé !</h3>
+                    <div class="text-gray-600  mb-6">
                         🎉 Félicitations ! Votre compte créateur a été créé avec succès.
                         <br>
                         <span class="text-sm">Un email de confirmation a été envoyé.</span>
@@ -166,43 +157,7 @@
 
     <script src="{{ asset('admin_theme/js/vendors/alpinejs.min.js') }}" defer></script>
     <script src="{{ asset('admin_theme/js/main.js') }}"></script>
-    <script src="{{ asset('js/timezone-helper.js') }}"></script>
-    <!-- Use project's compiled assets -->
-    <script src="{{ asset('build/assets/micromodal-BRQfhtNh.js') }}" type="module"></script>
-    <script src="{{ asset('build/assets/app-4xXoly8b.js') }}" type="module"></script>
-    <script type="module">
-        // Add inert attribute support to MicroModal
-        document.addEventListener('DOMContentLoaded', function() {
-            // Wait for MicroModal to be available
-            const checkMicroModal = setInterval(function() {
-                if (window.MicroModal) {
-                    clearInterval(checkMicroModal);
-
-                    // Override the show method to remove inert attribute
-                    const originalShow = window.MicroModal.show;
-                    window.MicroModal.show = function(targetModal, options) {
-                        const modal = document.getElementById(targetModal);
-                        if (modal) {
-                            modal.removeAttribute('inert');
-                        }
-                        return originalShow(targetModal, options);
-                    };
-
-                    // Override the close method to add inert attribute
-                    const originalClose = window.MicroModal.close;
-                    window.MicroModal.close = function(targetModal) {
-                        const modal = document.getElementById(targetModal);
-                        if (modal) {
-                            modal.setAttribute('inert', '');
-                        }
-                        return originalClose(targetModal);
-                    };
-
-                    console.log('MicroModal overrides applied successfully');
-                }
-            }, 100);
-        });
-    </script>
+    <script src="https://unpkg.com/micromodal/dist/micromodal.min.js"></script>
     <script type="module">
         // Configuration du token CSRF pour les requêtes AJAX
         document.addEventListener('DOMContentLoaded', function() {
@@ -220,42 +175,14 @@
             const loadingSpinner = document.getElementById('creatorLoadingSpinner');
 
             form.addEventListener('submit', function(e) {
-                // Empêcher la soumission par défaut du formulaire
-                e.preventDefault();
-
-                // Afficher le loading
+                // Show loading state but allow normal form submission
                 submitBtn.disabled = true;
                 submitText.classList.add('hidden');
                 loadingSpinner.classList.remove('hidden');
-
-                // Afficher le pop-up de succès après un court délai
-                setTimeout(function() {
-                    showCreatorSuccessPopup();
-
-                    // Soumettre le formulaire après 3 secondes pour laisser le temps de lire le message
-                    setTimeout(function() {
-                        form.submit();
-                    }, 3000);
-                }, 500);
+                
+                // Don't prevent default - let the form submit normally
             });
 
-            function showCreatorSuccessPopup() {
-                // Wait for openModal to be available
-                if (window.openModal) {
-                    // Utiliser MicroModal pour afficher le modal de succès
-                    window.openModal('modal-creator-success');
-                } else {
-                    console.error('openModal function not available');
-                    // Fallback: try again after a short delay
-                    setTimeout(function() {
-                        if (window.openModal) {
-                            window.openModal('modal-creator-success');
-                        } else {
-                            console.error('openModal function still not available after delay');
-                        }
-                    }, 500);
-                }
-            }
         });
     </script>
 </body>

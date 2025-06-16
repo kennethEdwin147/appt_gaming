@@ -12,7 +12,6 @@ use App\Models\creator\Creator;
 use App\Models\customer\Customer;
 use App\Models\notification\Notification;
 use App\Models\reservation\Reservation;
-use App\Models\schedule\Schedule;
 
 class User extends Authenticatable
 {
@@ -87,13 +86,6 @@ class User extends Authenticatable
         return $this->hasMany(Reservation::class);
     }
 
-    /**
-     * Get the schedules for the user (if creator).
-     */
-    public function schedules(): HasMany
-    {
-        return $this->hasMany(Schedule::class, 'creator_id');
-    }
 
     /**
      * Scope for active users.

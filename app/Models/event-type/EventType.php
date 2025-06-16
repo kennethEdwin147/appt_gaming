@@ -3,7 +3,6 @@
 namespace App\Models\EventType;
 
 use App\Models\creator\Creator;
-use App\Models\schedule\Schedule;
 use App\Models\reservation\Reservation;
 use App\Enums\MeetingPlatform;
 use App\Enums\EventDuration;
@@ -33,7 +32,6 @@ class EventType extends Model
         'session_type',
         'is_active',
         'creator_id',
-        'schedule_id',
     ];
 
     /**
@@ -58,13 +56,6 @@ class EventType extends Model
         return $this->belongsTo(Creator::class);
     }
 
-    /**
-     * Get the schedule associated with the event type.
-     */
-    public function schedule(): BelongsTo
-    {
-        return $this->belongsTo(Schedule::class);
-    }
 
     /**
      * Get the reservations for this event type.
@@ -309,8 +300,7 @@ class EventType extends Model
     public function canBeBooked(): bool
     {
         return $this->is_active && 
-               $this->creator->isConfirmed() &&
-               $this->schedule->isActive();
+               $this->creator->isConfirmed();
     }
 
     /**
