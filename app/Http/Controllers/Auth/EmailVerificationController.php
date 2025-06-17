@@ -43,14 +43,14 @@ class EmailVerificationController extends Controller
     {
         if ($user->role === 'creator') {
             $creator = $user->creator;
-            if (!$creator->timezone || !$creator->bio) {
-                return redirect()->route('creator.setup.timezone')
+            if (!$creator || !$creator->timezone || !$creator->bio) {
+                return redirect('/creator/setup/timezone')
                     ->with('success', 'Email vérifié ! Terminons la configuration.');
             }
-            return redirect()->route('creator.dashboard');
+            return redirect('/creator/dashboard');
         }
         
-        return redirect()->route('customer.dashboard')
+        return redirect('/customer/dashboard')
             ->with('success', 'Email vérifié avec succès !');
     }
 }

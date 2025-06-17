@@ -1,3 +1,7 @@
+ ====================== DEJA FAIT ======================
+
+========================================================
+
 # Configuration Resend Email - Gaming Platform
 
 ## 🎯 Objectif

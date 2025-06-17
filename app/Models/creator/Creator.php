@@ -24,6 +24,7 @@ class Creator extends Model
      */
     protected $fillable = [
         'user_id',
+        'gaming_pseudo',
         'bio',
         'platform_name',
         'platform_url',
@@ -31,7 +32,11 @@ class Creator extends Model
         'timezone',
         'confirmation_token',
         'confirmed_at',
+        'setup_completed_at',
         'platform_commission_rate',
+        'main_game',
+        'rank_info',
+        'default_hourly_rate',
     ];
 
     /**
@@ -43,7 +48,9 @@ class Creator extends Model
     {
         return [
             'confirmed_at' => 'datetime',
+            'setup_completed_at' => 'datetime',
             'platform_commission_rate' => 'decimal:2',
+            'default_hourly_rate' => 'decimal:2',
         ];
     }
 

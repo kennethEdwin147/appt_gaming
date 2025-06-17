@@ -3,8 +3,8 @@
 namespace App\Services;
 
 use App\Models\creator\Creator;
-use App\Models\event_type\EventType;
-use App\Models\time_slot\TimeSlot;
+use App\Models\EventType\EventType;
+use App\Models\TimeSlot\TimeSlot;
 use App\Models\availability\Availability;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;

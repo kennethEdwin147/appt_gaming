@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\Creator;
+use App\Models\creator\Creator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -13,7 +13,7 @@ class CreatorRegistrationController extends Controller
 {
     public function showRegistrationForm()
     {
-        return view('auth.register-creator');
+        return view('authentication.register.register-creator');
     }
 
     public function register(Request $request)
@@ -44,10 +44,10 @@ class CreatorRegistrationController extends Controller
             Auth::login($user);
 
             if ($request->expectsJson()) {
-                return response()->json(['success' => true, 'redirect' => route('verification.notice')]);
+                return response()->json(['success' => true, 'redirect' => '/email/verify']);
             }
 
-            return redirect()->route('verification.notice')
+            return redirect('/email/verify')
                            ->with('success', 'Compte créateur créé ! Vérifiez votre email.');
                            
         } catch (\Exception $e) {

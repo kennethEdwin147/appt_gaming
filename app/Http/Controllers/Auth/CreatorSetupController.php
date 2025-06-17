@@ -11,12 +11,12 @@ class CreatorSetupController extends Controller
     {
         // Si déjà configuré, passer à l'étape suivante
         if (auth()->user()->creator->timezone) {
-            return redirect()->route('creator.setup.profile');
+            return redirect('/creator/setup/profile');
         }
         
         $timezones = $this->getTimezonesByRegion();
         
-        return view('auth.creator-setup.timezone', compact('timezones'));
+        return view('authentication.creator-setup.timezone', compact('timezones'));
     }
 
     public function saveTimezone(Request $request)
@@ -29,7 +29,7 @@ class CreatorSetupController extends Controller
             'timezone' => $request->timezone
         ]);
         
-        return redirect()->route('creator.setup.profile')
+        return redirect('/creator/setup/profile')
             ->with('success', 'Fuseau horaire sauvegardé !');
     }
 
@@ -39,10 +39,10 @@ class CreatorSetupController extends Controller
         
         // Si pas de timezone, retourner à l'étape 1
         if (!$creator->timezone) {
-            return redirect()->route('creator.setup.timezone');
+            return redirect('/creator/setup/timezone');
         }
         
-        return view('auth.creator-setup.profile', compact('creator'));
+        return view('authentication.creator-setup.profile', compact('creator'));
     }
 
     public function saveProfile(Request $request)
@@ -66,7 +66,7 @@ class CreatorSetupController extends Controller
             'setup_completed_at' => now()
         ]);
         
-        return redirect()->route('creator.dashboard')
+        return redirect('/creator/dashboard')
             ->with('success', 'Profil créateur configuré avec succès !');
     }
 

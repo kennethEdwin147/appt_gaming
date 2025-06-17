@@ -10,12 +10,12 @@ class AuthController extends Controller
 {
     public function showChooseRole()
     {
-        return view('auth.choose-role');
+        return view('authentication.choose-role.choose-role');
     }
 
     public function showLogin()
     {
-        return view('auth.login');
+        return view('authentication.login.login');
     }
 
     public function login(Request $request)
@@ -32,7 +32,7 @@ class AuthController extends Controller
             
             // Vérifier si email vérifié
             if (!$user->hasVerifiedEmail()) {
-                return redirect()->route('verification.notice');
+                return redirect('/email/verify');
             }
             
             // Redirection selon rôle et état
@@ -40,15 +40,15 @@ class AuthController extends Controller
                 $creator = $user->creator;
                 
                 // Si setup pas terminé, rediriger vers setup
-                if (!$creator->timezone || !$creator->bio) {
-                    return redirect()->route('creator.setup.timezone');
+                if (!$creator || !$creator->timezone || !$creator->bio) {
+                    return redirect('/creator/setup/timezone');
                 }
                 
-                return redirect()->route('creator.dashboard');
+                return redirect('/creator/dashboard');
             }
             
             if ($user->role === 'customer') {
-                return redirect()->route('customer.dashboard');
+                return redirect('/customer/dashboard');
             }
             
             return redirect()->intended('/');

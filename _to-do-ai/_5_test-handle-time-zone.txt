@@ -1,3 +1,8 @@
+ ====================== DEJA FAIT ======================
+
+========================================================
+
+
 # Instructions Tests HandlesTimezones Trait - Gaming Platform
 
 ## 📁 Structure à créer

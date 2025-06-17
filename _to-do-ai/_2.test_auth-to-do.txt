@@ -1,591 +1,265 @@
-# Instructions Premiers Tests - Gaming Platform
+# Instructions Tests Auth Unit - Gaming Platform
 
-## TESTS UNIT À CRÉER EN PRIORITÉ
-
-Créer les tests suivants dans `tests/Unit/` :
-
-- **Services/AvailabilityServiceTest.php** (critique - génération time slots)
-- **Services/ReservationServiceTest.php** (logique métier principale)
-- **Models/TimeSlotTest.php** (relations et scopes)
-- **Models/CreatorTest.php** (relations et méthodes)
-
-## STRUCTURE DES DOSSIERS
+## 📁 Structure à créer
 
 ```
 tests/
-├── Unit/
-│   ├── Services/
-│   │   ├── AvailabilityServiceTest.php
-│   │   ├── ReservationServiceTest.php
-│   │   └── EmailServiceTest.php
-│   └── Models/
-│       ├── TimeSlotTest.php
-│       ├── CreatorTest.php
-│       ├── ReservationTest.php
-│       └── UserTest.php
-├── Feature/
-│   └── (pour plus tard)
-└── Browser/
-    └── (pour plus tard)
+├── Traits/
+│   └── CreatesTestData.php
+└── Unit/
+    └── Auth/
+        ├── AuthControllerTest.php
+        ├── CreatorSetupControllerTest.php
+        ├── EmailVerificationControllerTest.php
+        └── PasswordResetControllerTest.php
 ```
 
-## SETUP DE BASE
+## 🧪 Créer le trait CreatesTestData
 
-### Configuration PHPUnit
+**Fichier :** `tests/Traits/CreatesTestData.php`
+
+**Contenu :** Trait avec méthodes helper :
+- `createUser($role = 'customer', $attributes = [])` - Créer utilisateur
+- `createCreator($attributes = [])` - Créer créateur avec user
+- `createCustomer($attributes = [])` - Créer customer avec user  
+- `createEventType($creator = null, $attributes = [])` - Créer event type
+- `createAvailability($creator = null, $attributes = [])` - Créer availability
+- `createTimeSlot($creator = null, $attributes = [])` - Créer time slot
+- `actingAsCreator($attributes = [])` - Login comme créateur
+- `actingAsCustomer($attributes = [])` - Login comme customer
+
+## 🔧 Modifier TestCase.php
+
+**Fichier :** `tests/TestCase.php`
+
+**Ajouter :**
+- `use RefreshDatabase, CreatesTestData`
+- `Mail::fake()` dans setUp()
+- `Event::fake()` dans setUp()
+
+## 🎯 Tests AuthControllerTest.php
+
+**Fichier :** `tests/Unit/Auth/AuthControllerTest.php`
+
+**Tests à créer :**
+
+### Tests d'inscription
+- `it_can_register_a_client()` - Inscription client réussie
+- `it_can_register_a_creator()` - Inscription créateur avec gaming_pseudo
+- `it_validates_required_fields_on_registration()` - Validation champs requis
+- `it_prevents_duplicate_emails()` - Email unique
+- `it_prevents_duplicate_gaming_pseudo()` - Gaming pseudo unique
+- `it_sends_verification_email_on_registration()` - Email envoyé
+
+### Tests de connexion
+- `it_can_login_with_valid_credentials()` - Login réussi
+- `it_rejects_invalid_credentials()` - Login échoué
+- `it_redirects_creator_to_setup_after_login()` - Redirect setup si timezone null
+- `it_redirects_creator_to_dashboard_when_setup_complete()` - Redirect dashboard si setup OK
+- `it_redirects_customer_to_dashboard_after_login()` - Redirect customer
+- `it_redirects_to_verification_if_email_not_verified()` - Email non vérifié
+
+### Tests de déconnexion
+- `it_can_logout()` - Logout + redirect home
+- `it_clears_session_on_logout()` - Session vidée
+
+## 🎯 Tests CreatorSetupControllerTest.php
+
+**Fichier :** `tests/Unit/Auth/CreatorSetupControllerTest.php`
+
+**Tests à créer :**
+
+### Étape 1 - Timezone
+- `it_shows_timezone_selection()` - Affichage page timezone
+- `it_can_save_timezone()` - Sauvegarde timezone
+- `it_redirects_to_profile_after_timezone()` - Redirect étape 2
+- `it_skips_timezone_if_already_set()` - Skip si déjà configuré
+
+### Étape 2 - Profile
+- `it_shows_profile_setup()` - Affichage page profil
+- `it_requires_timezone_before_profile()` - Empêche skip étape 1
+- `it_can_save_profile()` - Sauvegarde profil complet
+- `it_validates_profile_fields()` - Validation bio, rate, etc.
+- `it_marks_setup_as_completed()` - setup_completed_at défini
+- `it_redirects_to_dashboard_after_completion()` - Redirect final
+
+### Sécurité
+- `it_requires_authentication()` - Middleware auth
+- `it_requires_creator_role()` - Seuls les créateurs
+
+## 🎯 Tests EmailVerificationControllerTest.php
+
+**Fichier :** `tests/Unit/Auth/EmailVerificationControllerTest.php`
+
+**Tests à créer :**
+
+### Pages
+- `it_shows_verification_notice()` - Page "vérifiez email"
+- `it_redirects_verified_users_from_notice()` - Skip si déjà vérifié
+
+### Vérification
+- `it_can_verify_email()` - Vérification avec token valide
+- `it_rejects_invalid_verification_token()` - Token invalide
+- `it_marks_email_as_verified()` - email_verified_at défini
+- `it_can_resend_verification_email()` - Renvoi email
+
+### Redirections après vérification
+- `it_redirects_creator_to_setup_after_verification()` - Flow créateur incomplet
+- `it_redirects_creator_to_dashboard_if_setup_complete()` - Flow créateur complet
+- `it_redirects_customer_to_dashboard_after_verification()` - Flow customer
+
+## 🎯 Tests PasswordResetControllerTest.php
+
+**Fichier :** `tests/Unit/Auth/PasswordResetControllerTest.php`
+
+**Tests à créer :**
+
+### Pages
+- `it_shows_forgot_password_form()` - Page forgot password
+- `it_shows_reset_form_with_valid_token()` - Page reset avec token
+- `it_rejects_invalid_reset_token()` - Token invalide
+
+### Envoi link
+- `it_can_send_reset_link()` - Envoi link reset
+- `it_validates_email_exists()` - Email doit exister
+- `it_sends_reset_email()` - Email effectivement envoyé
+
+### Reset password
+- `it_can_reset_password()` - Reset réussi
+- `it_validates_password_confirmation()` - Confirmation password
+- `it_updates_password_hash()` - Hash mis à jour
+- `it_redirects_to_login_after_reset()` - Redirect après reset
+
+## 📧 Vérifications emails
+
+**Dans chaque test email :**
 ```php
-// tests/TestCase.php - Ajouter ces traits
-<?php
+// Email envoyé
+Mail::assertSent(NotificationClass::class);
 
-namespace Tests;
+// Email envoyé au bon user
+Mail::assertSent(NotificationClass::class, function ($mail) use ($user) {
+    return $mail->hasTo($user->email);
+});
 
-use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-
-abstract class TestCase extends BaseTestCase
-{
-    use CreatesApplication, RefreshDatabase;
-    
-    protected function setUp(): void
-    {
-        parent::setUp();
-        
-        // Désactiver les événements pour les tests
-        \Event::fake();
-        
-        // Désactiver les emails pour les tests
-        \Mail::fake();
-    }
-}
+// Contenu email
+Mail::assertSent(NotificationClass::class, function ($mail) use ($data) {
+    return $mail->data->id === $data->id;
+});
 ```
 
-### Trait pour créer des données
+## 🎮 Données de test gaming
+
+### Créateur gaming
 ```php
-// tests/Traits/CreatesTestData.php
-<?php
-
-namespace Tests\Traits;
-
-use App\Models\User;
-use App\Models\Creator;
-use App\Models\Customer;
-use App\Models\EventType;
-use App\Models\Availability;
-use App\Models\TimeSlot;
-
-trait CreatesTestData
-{
-    protected function createUser($role = 'customer', $attributes = [])
-    {
-        return User::factory()->create(array_merge([
-            'role' => $role,
-            'email_verified_at' => now(),
-        ], $attributes));
-    }
-    
-    protected function createCreator($attributes = [])
-    {
-        $user = $this->createUser('creator');
-        return Creator::factory()->create(array_merge([
-            'user_id' => $user->id,
-            'timezone' => 'America/Toronto',
-        ], $attributes));
-    }
-    
-    protected function createCustomer($attributes = [])
-    {
-        $user = $this->createUser('customer');
-        return Customer::factory()->create(array_merge([
-            'user_id' => $user->id,
-        ], $attributes));
-    }
-    
-    protected function createEventType($creator = null, $attributes = [])
-    {
-        $creator = $creator ?: $this->createCreator();
-        
-        return EventType::factory()->create(array_merge([
-            'creator_id' => $creator->id,
-            'name' => 'Coaching Valorant 1v1',
-            'default_duration' => 60,
-            'default_price' => 50.00,
-            'session_type' => 'individual',
-            'is_active' => true,
-        ], $attributes));
-    }
-    
-    protected function createAvailability($creator = null, $attributes = [])
-    {
-        $creator = $creator ?: $this->createCreator();
-        
-        return Availability::factory()->create(array_merge([
-            'creator_id' => $creator->id,
-            'day_of_week' => 'monday',
-            'start_time' => '09:00',
-            'end_time' => '17:00',
-            'is_active' => true,
-        ], $attributes));
-    }
-    
-    protected function createTimeSlot($creator = null, $attributes = [])
-    {
-        $creator = $creator ?: $this->createCreator();
-        
-        return TimeSlot::factory()->create(array_merge([
-            'creator_id' => $creator->id,
-            'start_time' => now()->addDay()->setHour(10)->setMinute(0),
-            'end_time' => now()->addDay()->setHour(10)->setMinute(30),
-            'status' => 'available',
-            'timezone' => 'America/Toronto',
-            'generated_for_date' => now()->addDay()->format('Y-m-d'),
-        ], $attributes));
-    }
-}
+$creatorData = [
+    'first_name' => 'ProGamer',
+    'last_name' => 'Elite',
+    'email' => 'progamer@example.com',
+    'password' => 'password123',
+    'password_confirmation' => 'password123',
+    'gaming_pseudo' => 'ProGamer2024',
+];
 ```
 
-## TESTS PRIORITAIRES
-
-### 1. AvailabilityServiceTest.php
+### Setup créateur
 ```php
-<?php
-
-namespace Tests\Unit\Services;
-
-use Tests\TestCase;
-use Tests\Traits\CreatesTestData;
-use App\Services\AvailabilityService;
-use App\Models\TimeSlot;
-use Carbon\Carbon;
-
-class AvailabilityServiceTest extends TestCase
-{
-    use CreatesTestData;
-    
-    protected AvailabilityService $availabilityService;
-    
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->availabilityService = app(AvailabilityService::class);
-    }
-    
-    /** @test */
-    public function it_can_generate_time_slots_for_creator()
-    {
-        // Arrange
-        $creator = $this->createCreator();
-        $this->createAvailability($creator, [
-            'day_of_week' => 'monday',
-            'start_time' => '10:00',
-            'end_time' => '12:00',
-        ]);
-        
-        $startDate = Carbon::parse('next monday');
-        $endDate = $startDate->copy()->addDays(7);
-        
-        // Act
-        $slots = $this->availabilityService->generateTimeSlotsForCreator(
-            $creator->id,
-            $startDate,
-            $endDate
-        );
-        
-        // Assert
-        $this->assertNotEmpty($slots);
-        $this->assertContainsOnlyInstancesOf(TimeSlot::class, $slots);
-        
-        // Vérifier qu'on a des slots pour le lundi
-        $mondaySlots = collect($slots)->filter(function ($slot) use ($startDate) {
-            return $slot->start_time->format('Y-m-d') === $startDate->format('Y-m-d');
-        });
-        
-        $this->assertGreaterThan(0, $mondaySlots->count());
-    }
-    
-    /** @test */
-    public function it_can_get_available_slots_for_event_type()
-    {
-        // Arrange
-        $creator = $this->createCreator();
-        $eventType = $this->createEventType($creator);
-        $this->createTimeSlot($creator, ['status' => 'available']);
-        $this->createTimeSlot($creator, ['status' => 'booked']); // Ne doit pas apparaître
-        
-        $startDate = Carbon::today();
-        $endDate = Carbon::today()->addDays(7);
-        
-        // Act
-        $slots = $this->availabilityService->getAvailableSlots(
-            $creator->id,
-            $eventType->id,
-            $startDate,
-            $endDate,
-            'America/Toronto'
-        );
-        
-        // Assert
-        $this->assertIsArray($slots);
-        
-        // Vérifier qu'on a seulement les slots disponibles
-        foreach ($slots as $daySlots) {
-            foreach ($daySlots as $slot) {
-                $this->assertArrayHasKey('id', $slot);
-                $this->assertArrayHasKey('start_time', $slot);
-                $this->assertArrayHasKey('display_time', $slot);
-            }
-        }
-    }
-    
-    /** @test */
-    public function it_can_book_a_time_slot()
-    {
-        // Arrange
-        $timeSlot = $this->createTimeSlot();
-        $this->assertEquals('available', $timeSlot->status);
-        
-        // Act
-        $result = $this->availabilityService->bookTimeSlot($timeSlot->id);
-        
-        // Assert
-        $this->assertTrue($result);
-        $timeSlot->refresh();
-        $this->assertEquals('booked', $timeSlot->status);
-    }
-    
-    /** @test */
-    public function it_cannot_book_unavailable_time_slot()
-    {
-        // Arrange
-        $timeSlot = $this->createTimeSlot(['status' => 'booked']);
-        
-        // Act
-        $result = $this->availabilityService->bookTimeSlot($timeSlot->id);
-        
-        // Assert
-        $this->assertFalse($result);
-    }
-    
-    /** @test */
-    public function it_can_release_booked_time_slot()
-    {
-        // Arrange
-        $timeSlot = $this->createTimeSlot(['status' => 'booked']);
-        
-        // Act
-        $result = $this->availabilityService->releaseTimeSlot($timeSlot->id);
-        
-        // Assert
-        $this->assertTrue($result);
-        $timeSlot->refresh();
-        $this->assertEquals('available', $timeSlot->status);
-    }
-    
-    /** @test */
-    public function it_can_get_creator_slots_stats()
-    {
-        // Arrange
-        $creator = $this->createCreator();
-        $this->createTimeSlot($creator, ['status' => 'available']);
-        $this->createTimeSlot($creator, ['status' => 'booked']);
-        $this->createTimeSlot($creator, ['status' => 'blocked']);
-        
-        // Act
-        $stats = $this->availabilityService->getCreatorSlotsStats($creator->id);
-        
-        // Assert
-        $this->assertArrayHasKey('total', $stats);
-        $this->assertArrayHasKey('available', $stats);
-        $this->assertArrayHasKey('booked', $stats);
-        $this->assertArrayHasKey('blocked', $stats);
-        $this->assertArrayHasKey('utilization_rate', $stats);
-        
-        $this->assertEquals(3, $stats['total']);
-        $this->assertEquals(1, $stats['available']);
-        $this->assertEquals(1, $stats['booked']);
-        $this->assertEquals(1, $stats['blocked']);
-    }
-}
+$setupData = [
+    'timezone' => 'America/Toronto',
+    'bio' => 'Coach Valorant expert avec 5 ans d\'expérience',
+    'main_game' => 'Valorant',
+    'rank_info' => 'Radiant',
+    'default_hourly_rate' => 75.00,
+];
 ```
 
-### 2. ReservationServiceTest.php
+## 📊 Assertions importantes
+
+### Base de données
 ```php
-<?php
-
-namespace Tests\Unit\Services;
-
-use Tests\TestCase;
-use Tests\Traits\CreatesTestData;
-use App\Services\ReservationService;
-use App\Models\Reservation;
-
-class ReservationServiceTest extends TestCase
-{
-    use CreatesTestData;
-    
-    protected ReservationService $reservationService;
-    
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->reservationService = app(ReservationService::class);
-    }
-    
-    /** @test */
-    public function it_can_create_reservation()
-    {
-        // Arrange
-        $creator = $this->createCreator();
-        $customer = $this->createCustomer();
-        $eventType = $this->createEventType($creator);
-        $timeSlot = $this->createTimeSlot($creator);
-        
-        $data = [
-            'user_id' => $customer->user_id,
-            'creator_id' => $creator->id,
-            'event_type_id' => $eventType->id,
-            'time_slot_id' => $timeSlot->id,
-            'timezone' => 'America/Toronto',
-            'special_requests' => 'Coaching débutant',
-        ];
-        
-        // Act
-        $reservation = $this->reservationService->createReservation($data);
-        
-        // Assert
-        $this->assertInstanceOf(Reservation::class, $reservation);
-        $this->assertEquals('pending', $reservation->status);
-        $this->assertEquals($customer->user_id, $reservation->user_id);
-        $this->assertEquals($creator->id, $reservation->creator_id);
-        
-        // Vérifier que le time slot est marqué comme réservé
-        $timeSlot->refresh();
-        $this->assertEquals('booked', $timeSlot->status);
-    }
-    
-    /** @test */
-    public function it_cannot_create_reservation_for_unavailable_slot()
-    {
-        // Arrange
-        $creator = $this->createCreator();
-        $customer = $this->createCustomer();
-        $eventType = $this->createEventType($creator);
-        $timeSlot = $this->createTimeSlot($creator, ['status' => 'booked']);
-        
-        $data = [
-            'user_id' => $customer->user_id,
-            'creator_id' => $creator->id,
-            'event_type_id' => $eventType->id,
-            'time_slot_id' => $timeSlot->id,
-            'timezone' => 'America/Toronto',
-        ];
-        
-        // Act & Assert
-        $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('Ce créneau n\'est plus disponible');
-        
-        $this->reservationService->createReservation($data);
-    }
-    
-    /** @test */
-    public function it_can_cancel_reservation()
-    {
-        // Arrange
-        $reservation = $this->createReservationWithSlot();
-        
-        // Act
-        $result = $this->reservationService->cancelReservation($reservation, 'Annulation test');
-        
-        // Assert
-        $this->assertTrue($result);
-        $reservation->refresh();
-        $this->assertEquals('cancelled', $reservation->status);
-        $this->assertNotNull($reservation->cancelled_at);
-        
-        // Vérifier que le time slot est libéré
-        $reservation->timeSlot->refresh();
-        $this->assertEquals('available', $reservation->timeSlot->status);
-    }
-    
-    /** @test */
-    public function it_can_confirm_reservation()
-    {
-        // Arrange
-        $reservation = $this->createReservationWithSlot(['status' => 'pending']);
-        
-        // Act
-        $result = $this->reservationService->confirmReservation($reservation);
-        
-        // Assert
-        $this->assertTrue($result);
-        $reservation->refresh();
-        $this->assertEquals('confirmed', $reservation->status);
-        $this->assertNotNull($reservation->confirmed_at);
-    }
-    
-    /** @test */
-    public function it_can_get_creator_reservation_stats()
-    {
-        // Arrange
-        $creator = $this->createCreator();
-        $this->createReservationWithSlot(['creator_id' => $creator->id, 'status' => 'completed']);
-        $this->createReservationWithSlot(['creator_id' => $creator->id, 'status' => 'cancelled']);
-        $this->createReservationWithSlot(['creator_id' => $creator->id, 'status' => 'no_show_customer']);
-        
-        // Act
-        $stats = $this->reservationService->getCreatorReservationStats($creator->id);
-        
-        // Assert
-        $this->assertArrayHasKey('total_reservations', $stats);
-        $this->assertArrayHasKey('completed', $stats);
-        $this->assertArrayHasKey('cancelled', $stats);
-        $this->assertArrayHasKey('completion_rate', $stats);
-        
-        $this->assertEquals(3, $stats['total_reservations']);
-        $this->assertEquals(1, $stats['completed']);
-        $this->assertEquals(1, $stats['cancelled']);
-    }
-    
-    protected function createReservationWithSlot($attributes = [])
-    {
-        $creator = $this->createCreator();
-        $customer = $this->createCustomer();
-        $eventType = $this->createEventType($creator);
-        $timeSlot = $this->createTimeSlot($creator);
-        
-        return Reservation::factory()->create(array_merge([
-            'user_id' => $customer->user_id,
-            'creator_id' => $creator->id,
-            'event_type_id' => $eventType->id,
-            'time_slot_id' => $timeSlot->id,
-            'reserved_datetime' => $timeSlot->start_time,
-            'price_paid' => $eventType->default_price,
-        ], $attributes));
-    }
-}
+$this->assertDatabaseHas('users', ['email' => $email]);
+$this->assertDatabaseHas('creators', ['gaming_pseudo' => $pseudo]);
+$this->assertDatabaseMissing('users', ['email' => $email]);
 ```
 
-### 3. TimeSlotTest.php (Model)
+### Authentification
 ```php
-<?php
-
-namespace Tests\Unit\Models;
-
-use Tests\TestCase;
-use Tests\Traits\CreatesTestData;
-use App\Models\TimeSlot;
-
-class TimeSlotTest extends TestCase
-{
-    use CreatesTestData;
-    
-    /** @test */
-    public function it_belongs_to_creator()
-    {
-        // Arrange
-        $creator = $this->createCreator();
-        $timeSlot = $this->createTimeSlot($creator);
-        
-        // Act & Assert
-        $this->assertInstanceOf(Creator::class, $timeSlot->creator);
-        $this->assertEquals($creator->id, $timeSlot->creator->id);
-    }
-    
-    /** @test */
-    public function it_has_available_scope()
-    {
-        // Arrange
-        $creator = $this->createCreator();
-        $availableSlot = $this->createTimeSlot($creator, ['status' => 'available']);
-        $bookedSlot = $this->createTimeSlot($creator, ['status' => 'booked']);
-        
-        // Act
-        $availableSlots = TimeSlot::available()->get();
-        
-        // Assert
-        $this->assertCount(1, $availableSlots);
-        $this->assertEquals($availableSlot->id, $availableSlots->first()->id);
-    }
-    
-    /** @test */
-    public function it_has_for_creator_scope()
-    {
-        // Arrange
-        $creator1 = $this->createCreator();
-        $creator2 = $this->createCreator();
-        $slot1 = $this->createTimeSlot($creator1);
-        $slot2 = $this->createTimeSlot($creator2);
-        
-        // Act
-        $creator1Slots = TimeSlot::forCreator($creator1->id)->get();
-        
-        // Assert
-        $this->assertCount(1, $creator1Slots);
-        $this->assertEquals($slot1->id, $creator1Slots->first()->id);
-    }
-    
-    /** @test */
-    public function it_has_for_date_scope()
-    {
-        // Arrange
-        $creator = $this->createCreator();
-        $today = now();
-        $tomorrow = now()->addDay();
-        
-        $todaySlot = $this->createTimeSlot($creator, [
-            'start_time' => $today->setHour(10),
-            'generated_for_date' => $today->format('Y-m-d'),
-        ]);
-        
-        $tomorrowSlot = $this->createTimeSlot($creator, [
-            'start_time' => $tomorrow->setHour(10),
-            'generated_for_date' => $tomorrow->format('Y-m-d'),
-        ]);
-        
-        // Act
-        $todaySlots = TimeSlot::forDate($today->format('Y-m-d'))->get();
-        
-        // Assert
-        $this->assertCount(1, $todaySlots);
-        $this->assertEquals($todaySlot->id, $todaySlots->first()->id);
-    }
-}
+$this->assertAuthenticated();
+$this->assertGuest();
+$this->assertEquals('creator', auth()->user()->role);
 ```
 
-## COMMANDES POUR LANCER LES TESTS
+### Redirections
+```php
+$response->assertRedirect('/creator/dashboard');
+$response->assertRedirect('/creator/setup/timezone');
+$response->assertRedirect('/email/verify');
+```
+
+### Validation
+```php
+$response->assertSessionHasErrors(['email', 'password']);
+$response->assertSessionHasNoErrors();
+```
+
+### Messages flash
+```php
+$response->assertSessionHas('success', 'Message attendu');
+$response->assertSessionHas('error');
+```
+
+## 🚀 Commandes à exécuter
 
 ```bash
-# Installer PHPUnit si pas déjà fait
-composer require --dev phpunit/phpunit
+# Créer les dossiers
+mkdir -p tests/Traits tests/Unit/Auth
 
-# Lancer tous les tests
-php artisan test
+# Créer les fichiers de test
+php artisan make:test Auth/AuthControllerTest --unit
+php artisan make:test Auth/CreatorSetupControllerTest --unit
+php artisan make:test Auth/EmailVerificationControllerTest --unit
+php artisan make:test Auth/PasswordResetControllerTest --unit
 
-# Lancer seulement les tests Unit
-php artisan test tests/Unit
-
-# Lancer un test spécifique
-php artisan test tests/Unit/Services/AvailabilityServiceTest.php
-
-# Lancer avec coverage (si xdebug installé)
-php artisan test --coverage
-
-# Lancer en mode verbose
-php artisan test --verbose
+# Lancer les tests
+php artisan test tests/Unit/Auth
 ```
 
-## NOTES IMPORTANTES
+## 📝 Structure des tests
 
-- Utiliser `RefreshDatabase` trait pour reset DB entre tests
-- Faker les emails avec `Mail::fake()` 
-- Utiliser les factories pour créer des données
-- Tester les cas d'erreur (exceptions)
-- Vérifier les effets de bord (time slot status, etc.)
-- Garder les tests simples et focalisés
-- Nommer les tests clairement (`it_can_do_something`)
-- Arranger, Act, Assert pattern
+**Pattern Arrange-Act-Assert :**
+```php
+/** @test */
+public function it_can_do_something()
+{
+    // Arrange
+    $user = $this->createUser();
+    $data = ['key' => 'value'];
+    
+    // Act
+    $response = $this->post('/endpoint', $data);
+    
+    // Assert
+    $this->assertDatabaseHas('table', $data);
+    $response->assertRedirect('/success');
+}
+```
 
-## PROCHAINES ÉTAPES  (a faire plus tard prends en consciences mais ne les fais pas):
+## 🎯 Points critiques à tester
 
-Après ces tests Unit (a faire plus tard prends en consciences mais ne les fais pas):
-1. Tests Feature pour les controllers
-2. Tests Browser avec Dusk pour les flows complets
-3. Tests d'intégration pour les services externes (emails, etc.)
+- **Gaming pseudo unique** pour créateurs
+- **Flow wizard setup** créateur (timezone → profile)
+- **Redirections selon rôle** et état setup
+- **Emails Resend** envoyés correctement
+- **Sessions gérées** correctement
+- **Validation complète** des formulaires
+- **Sécurité** (auth, rôles, tokens)
+
+## 📋 Checklist validation
+
+- [ ] Tous les tests passent
+- [ ] Coverage > 80% sur Auth controllers
+- [ ] Emails mockés correctement
+- [ ] Base de données refresh entre tests
+- [ ] Pas de side effects entre tests
+- [ ] Gaming pseudo testé spécifiquement
+- [ ] Setup wizard complet testé

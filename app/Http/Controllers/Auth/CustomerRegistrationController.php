@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\Customer;
+use App\Models\customer\Customer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -13,7 +13,7 @@ class CustomerRegistrationController extends Controller
 {
     public function showRegistrationForm()
     {
-        return view('auth.register-client');
+        return view('authentication.register.register-customer');
     }
 
     public function register(Request $request)
@@ -40,10 +40,10 @@ class CustomerRegistrationController extends Controller
             Auth::login($user);
 
             if ($request->expectsJson()) {
-                return response()->json(['success' => true, 'redirect' => route('verification.notice')]);
+                return response()->json(['success' => true, 'redirect' => '/email/verify']);
             }
 
-            return redirect()->route('verification.notice')
+            return redirect('/email/verify')
                            ->with('success', 'Compte créé ! Vérifiez votre email.');
                            
         } catch (\Exception $e) {
