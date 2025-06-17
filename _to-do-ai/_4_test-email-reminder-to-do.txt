@@ -1,0 +1,362 @@
+# Instructions Tests EmailService et ReminderService - Gaming Platform
+
+## 📁 Structure à créer
+
+```
+tests/Unit/Services/
+├── AvailabilityServiceTest.php ✅ (fait)
+├── ReservationServiceTest.php ✅ (fait) 
+├── EmailServiceTest.php ❌ (à créer - PRIORITÉ)
+└── ReminderServiceTest.php ❌ (à créer - PRIORITÉ)
+```
+
+## 🧪 Setup général pour les tests
+
+**Utiliser le trait :** `CreatesTestData` (déjà créé)
+
+**Setup required dans chaque test :**
+```php
+<?php
+
+namespace Tests\Unit\Services;
+
+use Tests\TestCase;
+use Tests\Traits\CreatesTestData;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
+
+class ServiceTest extends TestCase
+{
+    use CreatesTestData;
+    
+    protected $serviceName;
+    
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->serviceName = app(ServiceClass::class);
+        
+        // IMPORTANT: Fake emails/notifications
+        Mail::fake();
+        Notification::fake();
+    }
+}
+```
+
+## 🎯 Tests EmailServiceTest.php
+
+**Fichier :** `tests/Unit/Services/EmailServiceTest.php`
+
+**Service à tester :** `App\Services\EmailService`
+
+### Tests méthodes principales
+- `it_can_send_reservation_confirmation()` - Email confirmation réservation
+- `it_can_send_creator_account_confirmation()` - Email confirmation créateur avec token
+- `it_can_send_password_change_confirmation()` - Email changement password
+- `it_can_send_reservation_reminder()` - Email rappel réservation
+- `it_can_send_reservation_cancellation()` - Email annulation
+- `it_can_send_payment_confirmation()` - Email confirmation paiement
+- `it_can_send_new_reservation_notification()` - Email pour créateur (nouveau booking)
+- `it_can_send_meeting_link_changed_notification()` - Email changement lien réunion
+- `it_can_send_password_reset_link()` - Email reset password (Laravel natif)
+
+### Tests contenu emails
+- `it_sends_correct_reservation_data_in_email()` - Données réservation incluses
+- `it_includes_creator_details_in_notification()` - Détails créateur
+- `it_includes_meeting_link_in_confirmation()` - Lien réunion inclus
+- `it_includes_gaming_details_in_emails()` - Gaming pseudo, jeux, etc.
+- `it_formats_datetime_correctly_for_user_timezone()` - Timezone utilisateur
+- `it_includes_special_requests_in_confirmation()` - Demandes spéciales
+
+### Tests notifications Laravel
+- `it_uses_correct_notification_classes()` - Bonnes classes utilisées
+- `it_sends_to_correct_recipients()` - Destinataires corrects
+- `it_passes_correct_data_to_notifications()` - Données passées
+- `it_handles_notification_failures_gracefully()` - Gestion erreurs
+
+### Tests Resend integration
+- `it_works_with_resend_configuration()` - Fonctionne avec Resend
+- `it_sends_from_correct_platform_address()` - From address
+- `it_includes_platform_branding()` - Branding Gaming Platform
+
+### Tests edge cases
+- `it_handles_missing_user_gracefully()` - User null/inexistant
+- `it_handles_missing_reservation_gracefully()` - Réservation inexistante
+- `it_handles_missing_creator_gracefully()` - Créateur inexistant
+- `it_continues_execution_on_email_failure()` - Continue si email échoue
+
+### Tests données gaming spécifiques
+- `it_includes_gaming_pseudo_in_creator_emails()` - Gaming pseudo
+- `it_includes_event_type_name_in_emails()` - Nom événement gaming
+- `it_formats_price_correctly_in_payment_emails()` - Prix formaté CAD
+- `it_includes_session_duration_in_confirmations()` - Durée session
+
+## 🎯 Tests ReminderServiceTest.php
+
+**Fichier :** `tests/Unit/Services/ReminderServiceTest.php`
+
+**Service à tester :** `App\Services\ReminderService`
+
+### Tests fonctionnels de base
+- `it_can_send_daily_reminders()` - Envoi rappels quotidiens
+- `it_finds_reservations_for_tomorrow()` - Trouve réservations demain
+- `it_only_sends_to_confirmed_reservations()` - Seulement 'confirmed'
+- `it_excludes_cancelled_reservations()` - Exclut 'cancelled'
+- `it_excludes_completed_reservations()` - Exclut 'completed'
+- `it_excludes_past_reservations()` - Exclut passées
+
+### Tests de date et timezone
+- `it_calculates_tomorrow_correctly()` - Calcul demain correct
+- `it_handles_different_timezones()` - Fuseaux horaires différents
+- `it_works_across_date_boundaries()` - Passage jour suivant
+- `it_finds_reservations_in_24h_window()` - Fenêtre 24h correcte
+
+### Tests de volume et performance
+- `it_handles_multiple_reservations()` - Plusieurs réservations
+- `it_handles_no_reservations_gracefully()` - Aucune réservation
+- `it_handles_large_batch_efficiently()` - Gros volume
+- `it_processes_different_creators()` - Créateurs multiples
+- `it_processes_different_users()` - Utilisateurs multiples
+
+### Tests de retour et statistiques
+- `it_returns_correct_statistics()` - Stats (total/sent/failed)
+- `it_tracks_successful_sends()` - Compte envois réussis
+- `it_tracks_failed_sends()` - Compte échecs
+- `it_includes_reservation_details_in_stats()` - Détails dans stats
+- `it_includes_error_messages_for_failures()` - Messages erreur
+
+### Tests de résilience
+- `it_continues_on_individual_email_failure()` - Continue si 1 email échoue
+- `it_handles_deleted_users_gracefully()` - User supprimé
+- `it_handles_invalid_email_addresses()` - Email invalide
+- `it_handles_network_failures()` - Panne réseau
+
+### Tests gaming scenarios
+- `it_sends_reminders_for_gaming_sessions()` - Sessions gaming
+- `it_includes_game_details_in_reminders()` - Détails jeu
+- `it_handles_different_event_types()` - Types événements différents
+- `it_reminds_for_coaching_sessions()` - Sessions coaching
+
+## 📧 Assertions notifications importantes
+
+### Vérifications de base
+```php
+// Notification envoyée
+Notification::assertSentTo($user, NotificationClass::class);
+
+// Nombre exact
+Notification::assertSentTimes(NotificationClass::class, 3);
+
+// Pas envoyée
+Notification::assertNotSentTo($user, NotificationClass::class);
+
+// Queue (si async)
+Notification::assertQueued(NotificationClass::class);
+```
+
+### Vérifications contenu
+```php
+// Contenu notification
+Notification::assertSentTo($user, ReservationConfirmation::class, function ($notification) use ($reservation) {
+    return $notification->reservation->id === $reservation->id;
+});
+
+// Données spécifiques
+Notification::assertSentTo($user, NewReservationCreator::class, function ($notification) use ($reservation) {
+    $mail = $notification->toMail($user);
+    return str_contains($mail->render(), $reservation->eventType->name);
+});
+```
+
+### Vérifications destinataires
+```php
+// Bon destinataire
+Notification::assertSentTo($customer->user, ReservationConfirmation::class);
+Notification::assertSentTo($creator->user, NewReservationCreator::class);
+
+// Pas au mauvais destinataire
+Notification::assertNotSentTo($creator->user, ReservationConfirmation::class);
+```
+
+## 🎮 Helpers et données gaming
+
+### Helper création données gaming complètes
+```php
+protected function createGameReservationScenario()
+{
+    $creator = $this->createCreator([
+        'gaming_pseudo' => 'ProCoachValo',
+        'bio' => 'Coach Valorant expert - Radiant',
+        'timezone' => 'America/Toronto'
+    ]);
+    
+    $customer = $this->createCustomer([
+        'timezone' => 'America/Toronto'
+    ]);
+    
+    $eventType = $this->createEventType($creator, [
+        'name' => 'Coaching Valorant 1v1 - Montée de rang',
+        'default_duration' => 60,
+        'default_price' => 65.00,
+        'meeting_platform' => 'discord',
+        'description' => 'Session coaching personnalisée Valorant'
+    ]);
+    
+    $timeSlot = $this->createTimeSlot($creator, [
+        'start_time' => now()->addDay()->setHour(19),
+        'end_time' => now()->addDay()->setHour(20),
+    ]);
+    
+    $reservation = Reservation::factory()->create([
+        'user_id' => $customer->user_id,
+        'creator_id' => $creator->id,
+        'event_type_id' => $eventType->id,
+        'time_slot_id' => $timeSlot->id,
+        'reserved_datetime' => $timeSlot->start_time,
+        'timezone' => 'America/Toronto',
+        'special_requests' => 'Focus sur les fumées et placement',
+        'price_paid' => 65.00,
+        'status' => 'confirmed'
+    ]);
+    
+    return compact('creator', 'customer', 'eventType', 'timeSlot', 'reservation');
+}
+```
+
+### Helper scenario rappels
+```php
+protected function createTomorrowReminderScenario()
+{
+    $tomorrow = Carbon::tomorrow()->setHour(19);
+    
+    $scenario = $this->createGameReservationScenario();
+    $scenario['reservation']->update([
+        'reserved_datetime' => $tomorrow,
+        'status' => 'confirmed'
+    ]);
+    
+    return $scenario;
+}
+
+protected function createMultipleRemindersScenario($count = 5)
+{
+    $scenarios = [];
+    for ($i = 0; $i < $count; $i++) {
+        $scenarios[] = $this->createTomorrowReminderScenario();
+    }
+    return $scenarios;
+}
+```
+
+## 🧪 Tests patterns spécifiques
+
+### Test EmailService avec données complètes
+```php
+/** @test */
+public function it_includes_all_gaming_details_in_reservation_confirmation()
+{
+    // Arrange
+    $scenario = $this->createGameReservationScenario();
+    
+    // Act
+    $this->emailService->sendReservationConfirmation(
+        $scenario['customer']->user, 
+        $scenario['reservation']
+    );
+    
+    // Assert
+    Notification::assertSentTo($scenario['customer']->user, ReservationConfirmation::class, function ($notification) use ($scenario) {
+        $mail = $notification->toMail($scenario['customer']->user);
+        $content = $mail->render();
+        
+        return str_contains($content, $scenario['creator']->gaming_pseudo) &&
+               str_contains($content, $scenario['eventType']->name) &&
+               str_contains($content, '65,00 CAD') &&
+               str_contains($content, 'Focus sur les fumées');
+    });
+}
+```
+
+### Test ReminderService avec statistiques
+```php
+/** @test */
+public function it_returns_detailed_statistics_for_reminder_batch()
+{
+    // Arrange
+    $scenarios = $this->createMultipleRemindersScenario(3);
+    
+    // Act
+    $result = $this->reminderService->sendDailyReminders();
+    
+    // Assert
+    $this->assertEquals(3, $result['total']);
+    $this->assertEquals(3, $result['sent']);
+    $this->assertEquals(0, $result['failed']);
+    $this->assertCount(3, $result['details']);
+    
+    foreach ($result['details'] as $detail) {
+        $this->assertEquals('sent', $detail['status']);
+        $this->assertArrayHasKey('id', $detail);
+        $this->assertArrayHasKey('user', $detail);
+        $this->assertArrayHasKey('datetime', $detail);
+    }
+}
+```
+
+## 🚀 Commandes à exécuter
+
+```bash
+# Créer les 2 tests
+php artisan make:test Services/EmailServiceTest --unit
+php artisan make:test Services/ReminderServiceTest --unit
+
+# Lancer les nouveaux tests
+php artisan test tests/Unit/Services/EmailServiceTest
+php artisan test tests/Unit/Services/ReminderServiceTest
+
+# Lancer tous les tests Services
+php artisan test tests/Unit/Services
+
+# Avec verbose pour voir les détails
+php artisan test tests/Unit/Services --verbose
+```
+
+## 🎯 Points critiques à tester
+
+### EmailService
+- **Resend integration** fonctionne
+- **Gaming branding** dans emails  
+- **Timezone formatting** correct
+- **Notifications Laravel** utilisées
+- **Gestion erreurs** gracieuse
+- **Données gaming** incluses (pseudo, jeux, prix)
+
+### ReminderService
+- **Logique 24h** correcte
+- **Seulement confirmed** reservations
+- **Statistiques** précises  
+- **Gestion erreurs** continue le batch
+- **Performance** acceptable
+- **Gaming scenarios** couverts
+
+## 📋 Checklist validation
+
+- [ ] EmailService envoie tous les types emails
+- [ ] Notifications Resend mockées correctement
+- [ ] ReminderService trouve bonnes réservations
+- [ ] Statistiques rappels correctes
+- [ ] Gaming data incluse dans tous emails
+- [ ] Gestion timezone dans rappels
+- [ ] Performance batch acceptable (< 5s pour 100)
+- [ ] Erreurs gérées sans crash
+- [ ] Coverage > 85% sur les 2 services
+- [ ] Tests passent individuellement et ensemble
+
+## 💡 Notes importantes
+
+- **Mock obligatoire** : Mail::fake() et Notification::fake()
+- **Gaming focus** : Tester gaming pseudo, event names, prix CAD
+- **Timezone** : Vérifier formatage dates selon user timezone
+- **Batch processing** : ReminderService doit gérer gros volumes
+- **Error handling** : Continue malgré échecs individuels
+- **Real scenarios** : Utiliser vraies données gaming dans tests

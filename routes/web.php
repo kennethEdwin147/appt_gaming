@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Home\HomeController;
+use App\Http\Controllers\Auth\CreatorRegistrationController;
 
 Route::get('/', [HomeController::class, 'index']);
 
@@ -16,6 +17,8 @@ Route::get('/login', function () {
 Route::get('/register/creator', function () {
     return view('authentication.register.register-creator');
 })->name('register.creator');
+
+Route::post('/register/creator', [CreatorRegistrationController::class, 'register']);
 
 Route::get('/register/client', function () {
     return view('authentication.register.register-customer');

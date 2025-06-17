@@ -1,3 +1,7 @@
+ ====================== DEJA FAIT ======================
+
+========================================================
+
 # Instructions Simplification Base de Données - Suppression Schedules
 
 ## PROBLÈME IDENTIFIÉ

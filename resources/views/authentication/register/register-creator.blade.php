@@ -128,7 +128,7 @@
     <a href="#" data-micromodal-trigger="modal-creator-success" class="hidden"></a>
 
     <!-- Modal de succès pour la création de compte -->
-    <div class="modal micromodal-slide" id="modal-creator-success" aria-hidden="true" inert>
+    <div class="modal micromodal-slide hidden" id="modal-creator-success" aria-hidden="true" inert>
         <div class="modal__overlay fixed inset-0 bg-gray-900 bg-opacity-70 z-50" data-micromodal-close>
             <div class="modal__container relative bg-white  rounded shadow-lg max-w-md w-full mx-4 p-6" role="dialog" aria-modal="true" aria-labelledby="modal-creator-success-title">
                 <div class="text-center">
@@ -154,13 +154,21 @@
             </div>
         </div>
     </div>
-
     <script src="{{ asset('admin_theme/js/vendors/alpinejs.min.js') }}" defer></script>
     <script src="{{ asset('admin_theme/js/main.js') }}"></script>
     <script src="https://unpkg.com/micromodal/dist/micromodal.min.js"></script>
     <script type="module">
         // Configuration du token CSRF pour les requêtes AJAX
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialiser MicroModal
+            MicroModal.init({
+                disableScroll: true,
+                disableFocus: false,
+                awaitOpenAnimation: false,
+                awaitCloseAnimation: false,
+                debugMode: false
+            });
+
             // Récupérer le token CSRF depuis la balise meta
             let token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
