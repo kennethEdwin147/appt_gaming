@@ -4,108 +4,124 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Models\creator\Creator;
+use App\Enums\Timezone;
+use Illuminate\Support\Str;
 
 class CreatorSetupController extends Controller
 {
-    public function showTimezone()
+    public function showTimezoneForm()
     {
-        // Si déjà configuré, passer à l'étape suivante
-        if (auth()->user()->creator->timezone) {
-            return redirect('/creator/setup/profile');
+        $user = auth()->user();
+        $creator = $user->creator;
+        
+        // If creator record doesn't exist, create it
+        if (!$creator) {
+            // Générer un pseudo temporaire unique
+            $tempPseudo = 'temp_' . Str::random(10);
+            
+            $creator = Creator::create([
+                'user_id' => $user->id,
+                'gaming_pseudo' => $tempPseudo, // Valeur temporaire qui sera mise à jour plus tard
+                'confirmation_token' => Str::random(60),
+            ]);
+            
+            // Reload the creator
+            $creator = $user->fresh()->creator;
         }
         
-        $timezones = $this->getTimezonesByRegion();
+        // If timezone is already set, redirect to profile setup
+        if ($creator->timezone) {
+            return redirect()->route('creator.setup.profile');
+        }
         
-        return view('authentication.creator-setup.timezone', compact('timezones'));
+        return view('auth.creator-setup.timezone');
     }
-
+    
     public function saveTimezone(Request $request)
     {
         $request->validate([
             'timezone' => 'required|string',
         ]);
         
-        auth()->user()->creator->update([
-            'timezone' => $request->timezone
-        ]);
+        $user = auth()->user();
+        $creator = $user->creator;
         
-        return redirect('/creator/setup/profile')
-            ->with('success', 'Fuseau horaire sauvegardé !');
-    }
-
-    public function showProfile()
-    {
-        $creator = auth()->user()->creator;
-        
-        // Si pas de timezone, retourner à l'étape 1
-        if (!$creator->timezone) {
-            return redirect('/creator/setup/timezone');
+        // If creator record doesn't exist, create it
+        if (!$creator) {
+            // Générer un pseudo temporaire unique
+            $tempPseudo = 'temp_' . Str::random(10);
+            
+            $creator = Creator::create([
+                'user_id' => $user->id,
+                'gaming_pseudo' => $tempPseudo, // Valeur temporaire qui sera mise à jour plus tard
+                'confirmation_token' => Str::random(60),
+            ]);
+            
+            // Reload the creator
+            $creator = $user->fresh()->creator;
         }
         
-        return view('authentication.creator-setup.profile', compact('creator'));
+        $creator->update([
+            'timezone' => $request->timezone,
+        ]);
+        
+        return redirect()->route('creator.setup.profile')
+            ->with('success', 'Fuseau horaire enregistré avec succès !');
     }
-
+    
+    public function showProfileForm()
+    {
+        $user = auth()->user();
+        $creator = $user->creator;
+        
+        // If creator record doesn't exist, create it and redirect to timezone setup
+        if (!$creator) {
+            // Générer un pseudo temporaire unique
+            $tempPseudo = 'temp_' . Str::random(10);
+            
+            $creator = Creator::create([
+                'user_id' => $user->id,
+                'gaming_pseudo' => $tempPseudo, // Valeur temporaire qui sera mise à jour plus tard
+                'confirmation_token' => Str::random(60),
+            ]);
+            
+            return redirect()->route('creator.setup.timezone')
+                ->with('info', 'Commençons par configurer votre fuseau horaire.');
+        }
+        
+        // If timezone is not set, redirect to timezone setup first
+        if (!$creator->timezone) {
+            return redirect()->route('creator.setup.timezone')
+                ->with('error', 'Veuillez d\'abord configurer votre fuseau horaire.');
+        }
+        
+        return view('auth.creator-setup.profile', compact('creator'));
+    }
+    
     public function saveProfile(Request $request)
     {
-        $validated = $request->validate([
-            'bio' => 'required|string|max:500',
-            'main_game' => 'nullable|string|max:100',
-            'rank_info' => 'nullable|string|max:100',
-            'default_hourly_rate' => 'required|numeric|min:5|max:500',
+        $user = auth()->user();
+        $creator = $user->creator;
+        
+        // If creator record doesn't exist, redirect to timezone setup
+        if (!$creator) {
+            return redirect()->route('creator.setup.timezone')
+                ->with('error', 'Veuillez d\'abord configurer votre fuseau horaire.');
+        }
+        
+        $request->validate([
+            'gaming_pseudo' => 'required|string|max:255|unique:creators,gaming_pseudo,' . $creator->id,
+            'bio' => 'required|string|max:1000',
         ]);
         
-        auth()->user()->creator->update($validated);
-        
-        return $this->complete();
-    }
-
-    public function complete()
-    {
-        // Marquer le setup comme terminé
-        auth()->user()->creator->update([
-            'setup_completed_at' => now()
+        $creator->update([
+            'gaming_pseudo' => $request->gaming_pseudo,
+            'bio' => $request->bio,
+            'setup_completed_at' => now(),
         ]);
         
-        return redirect('/creator/dashboard')
-            ->with('success', 'Profil créateur configuré avec succès !');
-    }
-
-    private function getTimezonesByRegion()
-    {
-        $timezones = [
-            'Europe' => [
-                'Europe/Paris' => 'Paris (GMT+1)',
-                'Europe/London' => 'Londres (GMT+0)',
-                'Europe/Berlin' => 'Berlin (GMT+1)',
-                'Europe/Rome' => 'Rome (GMT+1)',
-                'Europe/Madrid' => 'Madrid (GMT+1)',
-                'Europe/Amsterdam' => 'Amsterdam (GMT+1)',
-                'Europe/Brussels' => 'Bruxelles (GMT+1)',
-                'Europe/Zurich' => 'Zurich (GMT+1)',
-            ],
-            'America' => [
-                'America/New_York' => 'New York (GMT-5)',
-                'America/Chicago' => 'Chicago (GMT-6)',
-                'America/Denver' => 'Denver (GMT-7)',
-                'America/Los_Angeles' => 'Los Angeles (GMT-8)',
-                'America/Toronto' => 'Toronto (GMT-5)',
-                'America/Montreal' => 'Montréal (GMT-5)',
-                'America/Sao_Paulo' => 'São Paulo (GMT-3)',
-            ],
-            'Asia' => [
-                'Asia/Tokyo' => 'Tokyo (GMT+9)',
-                'Asia/Shanghai' => 'Shanghai (GMT+8)',
-                'Asia/Singapore' => 'Singapour (GMT+8)',
-                'Asia/Dubai' => 'Dubaï (GMT+4)',
-                'Asia/Kolkata' => 'Mumbai (GMT+5:30)',
-            ],
-            'Australia' => [
-                'Australia/Sydney' => 'Sydney (GMT+10)',
-                'Australia/Melbourne' => 'Melbourne (GMT+10)',
-                'Australia/Perth' => 'Perth (GMT+8)',
-            ],
-        ];
-
-        return $timezones;
+        return redirect()->route('creator.dashboard')
+            ->with('success', 'Profil configuré avec succès ! Vous pouvez maintenant commencer à créer des événements.');
     }
 }
