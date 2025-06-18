@@ -46,42 +46,42 @@
 
                         <h1 class="text-3xl text-gray-800  font-bold mb-6">{{ __('Créer un compte Créateur') }}</h1>
                         <!-- Form -->
-                        <form method="POST" action="{{ route('creator.register.submit') }}" id="creatorRegisterForm">
+                        <form method="POST" action="{{ route('creator.register.submit') }}" id="creatorRegisterForm" data-testid="register-form">
                             @csrf
                             <div class="space-y-4">
                                 <div class="space-y-4 sm:flex sm:space-y-0 sm:space-x-4">
                                     <div class="sm:w-1/2">
                                         <label class="block text-sm font-medium mb-1" for="first_name">{{ __('Prénom') }} <span class="text-red-500">*</span></label>
-                                        <input id="first_name" class="form-input w-full @error('first_name') border-red-500 @enderror" type="text" name="first_name" value="{{ old('first_name') }}" required autocomplete="first_name" />
+                                        <input id="first_name" data-testid="first-name-input" class="form-input w-full @error('first_name') border-red-500 @enderror" type="text" name="first_name" value="{{ old('first_name') }}" required autocomplete="first_name" />
                                         @error('first_name')
-                                            <div class="text-red-500 mt-1 text-sm">{{ $message }}</div>
+                                            <div class="text-red-500 mt-1 text-sm" data-testid="validation-error">{{ $message }}</div>
                                         @enderror
                                     </div>
                                     <div class="sm:w-1/2">
                                         <label class="block text-sm font-medium mb-1" for="last_name">{{ __('Nom') }} <span class="text-red-500">*</span></label>
-                                        <input id="last_name" class="form-input w-full @error('last_name') border-red-500 @enderror" type="text" name="last_name" value="{{ old('last_name') }}" required autocomplete="last_name" />
+                                        <input id="last_name" data-testid="last-name-input" class="form-input w-full @error('last_name') border-red-500 @enderror" type="text" name="last_name" value="{{ old('last_name') }}" required autocomplete="last_name" />
                                         @error('last_name')
-                                            <div class="text-red-500 mt-1 text-sm">{{ $message }}</div>
+                                            <div class="text-red-500 mt-1 text-sm" data-testid="validation-error">{{ $message }}</div>
                                         @enderror
                                     </div>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium mb-1" for="email">{{ __('Adresse e-mail') }} <span class="text-red-500">*</span></label>
-                                    <input id="email" class="form-input w-full @error('email') border-red-500 @enderror" type="email" name="email" value="{{ old('email') }}" required autocomplete="email" />
+                                    <input id="email" data-testid="email-input" class="form-input w-full @error('email') border-red-500 @enderror" type="email" name="email" value="{{ old('email') }}" required autocomplete="email" />
                                     @error('email')
-                                        <div class="text-red-500 mt-1 text-sm">{{ $message }}</div>
+                                        <div class="text-red-500 mt-1 text-sm" data-testid="validation-error">{{ $message }}</div>
                                     @enderror
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium mb-1" for="password">{{ __('Mot de passe') }} <span class="text-red-500">*</span></label>
-                                    <input id="password" class="form-input w-full @error('password') border-red-500 @enderror" type="password" name="password" required autocomplete="new-password" />
+                                    <input id="password" data-testid="password-input" class="form-input w-full @error('password') border-red-500 @enderror" type="password" name="password" required autocomplete="new-password" />
                                     @error('password')
-                                        <div class="text-red-500 mt-1 text-sm">{{ $message }}</div>
+                                        <div class="text-red-500 mt-1 text-sm" data-testid="validation-error">{{ $message }}</div>
                                     @enderror
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium mb-1" for="password_confirmation">{{ __('Confirmer le mot de passe') }} <span class="text-red-500">*</span></label>
-                                    <input id="password_confirmation" class="form-input w-full" type="password" name="password_confirmation" required autocomplete="new-password" />
+                                    <input id="password_confirmation" data-testid="password-confirmation-input" class="form-input w-full" type="password" name="password_confirmation" required autocomplete="new-password" />
                                 </div>
                             </div>
                             <div class="flex items-center justify-between mt-6">
@@ -91,7 +91,7 @@
                                         <span class="text-sm ml-2">{{ __('Recevoir les actualités par email.') }}</span>
                                     </label>
                                 </div>
-                                <button type="submit" class="btn bg-violet-500 hover:bg-violet-600 text-white ml-3 whitespace-nowrap" id="creatorSubmitBtn">
+                                <button type="submit" data-testid="submit-button" class="btn bg-violet-500 hover:bg-violet-600 text-white ml-3 whitespace-nowrap" id="creatorSubmitBtn">
                                     <span id="creatorSubmitText">{{ __('C\'est parti !') }}</span>
                                     <span id="creatorLoadingSpinner" class="hidden">
                                         <svg class="animate-spin w-4 h-4 fill-current shrink-0 mr-1" viewBox="0 0 16 16">
