@@ -34,8 +34,6 @@ class Availability extends Model
     protected function casts(): array
     {
         return [
-            'start_time' => 'datetime:H:i:s',
-            'end_time' => 'datetime:H:i:s',
             'is_active' => 'boolean',
         ];
     }

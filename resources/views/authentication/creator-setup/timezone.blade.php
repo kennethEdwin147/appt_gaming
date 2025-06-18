@@ -1,1 +1,0 @@
-<h1>Timezone Setup</h1>

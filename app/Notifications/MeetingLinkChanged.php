@@ -2,8 +2,8 @@
 
 namespace App\Notifications;
 
-use App\Models\EventType;
-use App\Models\Reservation;
+use App\Models\EventType\EventType;
+use App\Models\Reservation\Reservation;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Carbon\Carbon;

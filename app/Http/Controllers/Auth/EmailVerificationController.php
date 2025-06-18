@@ -7,12 +7,17 @@ use App\Models\User;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 
 class EmailVerificationController extends Controller
 {
     public function notice()
     {
-        return view('auth.verify-email');
+        if (auth()->user()->hasVerifiedEmail()) {
+            return $this->redirectAfterEmailVerification(auth()->user());
+        }
+        
+        return view('auth.email.verify-email');
     }
 
     public function verify(EmailVerificationRequest $request)

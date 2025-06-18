@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\creator\Creator;
 use App\Models\EventType\EventType;
-use App\Models\TimeSlot\TimeSlot;
 use App\Models\availability\Availability;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -12,6 +11,11 @@ use Illuminate\Support\Facades\Log;
 
 class AvailabilityService
 {
+    public function __construct()
+    {
+        // Manual include since autoloader has issues with dash in folder names
+        require_once app_path('Models/time-slot/TimeSlot.php');
+    }
     /**
      * Récupère les créneaux disponibles pour un créateur et un type d'événement
      * VERSION TIME SLOTS avec génération automatique à la demande
@@ -26,18 +30,19 @@ class AvailabilityService
             return [];
         }
 
-        Log::info("Getting available slots for creator {$creatorId} from {$startDate->format('Y-m-d')} to {$endDate->format('Y-m-d')}");
-
         // 1. S'assurer que les slots existent pour la période demandée
         $this->ensureSlotsExist($creatorId, $startDate, $endDate);
 
         // 2. Récupérer les time_slots disponibles dans la période demandée
-        $timeSlots = TimeSlot::where('creator_id', $creatorId)
+        // Exclure les slots passés et inclure une marge pour les timezones
+        $utcNow = now()->utc();
+        $searchStart = $startDate->copy()->subDay()->startOfDay()->utc();
+        $searchEnd = $endDate->copy()->addDay()->endOfDay()->utc();
+        
+        $timeSlots = \App\Models\TimeSlot\TimeSlot::where('creator_id', $creatorId)
             ->where('status', 'available')
-            ->whereBetween('start_time', [
-                $startDate->copy()->startOfDay()->utc(),
-                $endDate->copy()->endOfDay()->utc()
-            ])
+            ->where('start_time', '>=', $utcNow) // Exclure les slots passés
+            ->whereBetween('start_time', [$searchStart, $searchEnd])
             ->orderBy('start_time')
             ->get();
 
@@ -45,9 +50,15 @@ class AvailabilityService
         $slots = [];
         
         foreach ($timeSlots as $timeSlot) {
-            // Convertir dans le timezone utilisateur
-            $userSlotTime = $timeSlot->start_time->setTimezone($timezone);
+            // Convertir dans le timezone utilisateur en préservant l'heure locale
+            $userSlotTime = $timeSlot->start_time->copy()->setTimezone($timezone);
             $dateKey = $userSlotTime->format('Y-m-d');
+            
+            // Vérifier que la date convertie est dans la plage demandée
+            $slotDate = Carbon::parse($dateKey);
+            if ($slotDate->lt($startDate) || $slotDate->gt($endDate)) {
+                continue;
+            }
             
             // Vérifier que le slot peut accommoder la durée de l'événement
             $slotDuration = $timeSlot->start_time->diffInMinutes($timeSlot->end_time);
@@ -63,8 +74,8 @@ class AvailabilityService
                     'end_time' => $userSlotTime->copy()->addMinutes($eventType->default_duration)->format('H:i'),
                     'datetime' => $timeSlot->start_time->utc()->toISOString(),
                     'display_time' => $userSlotTime->format('H:i'),
-                    'custom_price' => $timeSlot->custom_price, // Prix custom si défini
-                    'creator_notes' => $timeSlot->creator_notes, // Notes du créateur si publiques
+                    'custom_price' => $timeSlot->custom_price,
+                    'creator_notes' => $timeSlot->creator_notes,
                 ];
             }
         }
@@ -93,7 +104,7 @@ class AvailabilityService
 
         while ($currentDate->lte($endDate)) {
             // Vérifier si des slots existent déjà pour cette date
-            $existingSlotsCount = TimeSlot::where('creator_id', $creatorId)
+            $existingSlotsCount = \App\Models\TimeSlot\TimeSlot::where('creator_id', $creatorId)
                 ->whereDate('generated_for_date', $currentDate->format('Y-m-d'))
                 ->count();
 
@@ -127,19 +138,9 @@ class AvailabilityService
         $generated = [];
         
         // Récupérer les availabilities pour ce jour
-        $availabilities = Availability::whereHas('schedule', function ($query) use ($creator) {
-                $query->where('creator_id', $creator->id);
-            })
+        $availabilities = Availability::where('creator_id', $creator->id)
             ->where('day_of_week', $dayOfWeek)
             ->where('is_active', true)
-            ->where(function ($query) use ($date) {
-                $query->whereNull('effective_from')
-                      ->orWhere('effective_from', '<=', $date->format('Y-m-d'));
-            })
-            ->where(function ($query) use ($date) {
-                $query->whereNull('effective_until')
-                      ->orWhere('effective_until', '>=', $date->format('Y-m-d'));
-            })
             ->get();
 
         foreach ($availabilities as $availability) {
@@ -155,7 +156,7 @@ class AvailabilityService
      */
     public function isTimeSlotAvailable(int $timeSlotId, int $eventTypeId): bool
     {
-        $timeSlot = TimeSlot::find($timeSlotId);
+        $timeSlot = \App\Models\TimeSlot\TimeSlot::find($timeSlotId);
         
         if (!$timeSlot || $timeSlot->status !== 'available') {
             return false;
@@ -190,7 +191,7 @@ class AvailabilityService
      */
     public function bookTimeSlot(int $timeSlotId): bool
     {
-        $timeSlot = TimeSlot::find($timeSlotId);
+        $timeSlot = \App\Models\TimeSlot\TimeSlot::find($timeSlotId);
         
         if (!$timeSlot || $timeSlot->status !== 'available') {
             return false;
@@ -204,7 +205,7 @@ class AvailabilityService
      */
     public function releaseTimeSlot(int $timeSlotId): bool
     {
-        $timeSlot = TimeSlot::find($timeSlotId);
+        $timeSlot = \App\Models\TimeSlot\TimeSlot::find($timeSlotId);
         
         if (!$timeSlot || $timeSlot->status !== 'booked') {
             return false;
@@ -218,7 +219,7 @@ class AvailabilityService
      */
     public function blockTimeSlot(int $timeSlotId, int $creatorId, ?string $reason = null): bool
     {
-        $timeSlot = TimeSlot::where('id', $timeSlotId)
+        $timeSlot = \App\Models\TimeSlot\TimeSlot::where('id', $timeSlotId)
             ->where('creator_id', $creatorId)
             ->where('status', 'available')
             ->first();
@@ -238,7 +239,7 @@ class AvailabilityService
      */
     public function unblockTimeSlot(int $timeSlotId, int $creatorId): bool
     {
-        $timeSlot = TimeSlot::where('id', $timeSlotId)
+        $timeSlot = \App\Models\TimeSlot\TimeSlot::where('id', $timeSlotId)
             ->where('creator_id', $creatorId)
             ->where('status', 'blocked')
             ->first();
@@ -267,19 +268,9 @@ class AvailabilityService
             $dayOfWeek = strtolower($currentDate->format('l'));
             
             // Récupérer les availabilities pour ce jour
-            $availabilities = Availability::whereHas('schedule', function ($query) use ($creator) {
-                    $query->where('creator_id', $creator->id);
-                })
+            $availabilities = Availability::where('creator_id', $creator->id)
                 ->where('day_of_week', $dayOfWeek)
                 ->where('is_active', true)
-                ->where(function ($query) use ($currentDate) {
-                    $query->whereNull('effective_from')
-                          ->orWhere('effective_from', '<=', $currentDate->format('Y-m-d'));
-                })
-                ->where(function ($query) use ($currentDate) {
-                    $query->whereNull('effective_until')
-                          ->orWhere('effective_until', '>=', $currentDate->format('Y-m-d'));
-                })
                 ->get();
 
             foreach ($availabilities as $availability) {
@@ -289,7 +280,6 @@ class AvailabilityService
 
             $currentDate->addDay();
         }
-
         return $generated;
     }
 
@@ -302,13 +292,18 @@ class AvailabilityService
         $creatorTimezone = $creator->timezone ?? 'UTC';
         
         // Créer le datetime de début et fin dans le timezone du créateur
-        $slotStart = $date->copy()
-            ->setTimezone($creatorTimezone)
-            ->setTimeFromTimeString($availability->start_time->format('H:i:s'));
+        // Utiliser createFromFormat pour éviter les problèmes de conversion de timezone
+        $slotStart = Carbon::createFromFormat(
+            'Y-m-d H:i', 
+            $date->format('Y-m-d') . ' ' . $availability->start_time, 
+            $creatorTimezone
+        );
             
-        $dayEnd = $date->copy()
-            ->setTimezone($creatorTimezone)
-            ->setTimeFromTimeString($availability->end_time->format('H:i:s'));
+        $dayEnd = Carbon::createFromFormat(
+            'Y-m-d H:i', 
+            $date->format('Y-m-d') . ' ' . $availability->end_time, 
+            $creatorTimezone
+        );
 
         // Générer des créneaux de 30 minutes par défaut (configurable)
         $slotDuration = 30; // minutes
@@ -317,12 +312,12 @@ class AvailabilityService
             $slotEnd = $slotStart->copy()->addMinutes($slotDuration);
             
             // Vérifier si le slot n'existe pas déjà
-            $existingSlot = TimeSlot::where('creator_id', $creator->id)
+            $existingSlot = \App\Models\TimeSlot\TimeSlot::where('creator_id', $creator->id)
                 ->where('start_time', $slotStart->utc())
                 ->first();
 
             if (!$existingSlot) {
-                $timeSlot = TimeSlot::create([
+                $timeSlot = \App\Models\TimeSlot\TimeSlot::create([
                     'creator_id' => $creator->id,
                     'start_time' => $slotStart->utc(),
                     'end_time' => $slotEnd->utc(),
@@ -346,7 +341,7 @@ class AvailabilityService
      */
     public function cleanupPastSlots(): int
     {
-        return TimeSlot::where('end_time', '<', now())
+        return \App\Models\TimeSlot\TimeSlot::where('end_time', '<', now())
             ->whereIn('status', ['available', 'blocked'])
             ->update(['status' => 'past']);
     }
@@ -356,17 +351,17 @@ class AvailabilityService
      */
     public function getCreatorSlotsStats(int $creatorId, ?Carbon $startDate = null, ?Carbon $endDate = null): array
     {
-        $query = TimeSlot::where('creator_id', $creatorId);
+        $query = \App\Models\TimeSlot\TimeSlot::where('creator_id', $creatorId);
         
         if ($startDate && $endDate) {
             $query->whereBetween('start_time', [$startDate, $endDate]);
         }
 
         $total = $query->count();
-        $available = $query->where('status', 'available')->count();
-        $booked = $query->where('status', 'booked')->count();
-        $blocked = $query->where('status', 'blocked')->count();
-        $past = $query->where('status', 'past')->count();
+        $available = (clone $query)->where('status', 'available')->count();
+        $booked = (clone $query)->where('status', 'booked')->count();
+        $blocked = (clone $query)->where('status', 'blocked')->count();
+        $past = (clone $query)->where('status', 'past')->count();
 
         return [
             'total' => $total,

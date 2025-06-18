@@ -3,57 +3,44 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\customer\Customer;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 
 class CustomerRegistrationController extends Controller
 {
     public function showRegistrationForm()
     {
-        return view('authentication.register.register-customer');
+        return view('auth.register.register-customer');
     }
 
     public function register(Request $request)
     {
-        $validated = $request->validate([
+        $request->validate([
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
         ]);
 
-        try {
-            $user = User::create([
-                'first_name' => $validated['first_name'],
-                'last_name' => $validated['last_name'],
-                'email' => $validated['email'],
-                'password' => Hash::make($validated['password']),
-                'role' => 'customer',
-            ]);
+        $user = User::create([
+            'first_name' => $request->first_name,
+            'last_name' => $request->last_name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'role' => 'customer',
+        ]);
 
-            Customer::create(['user_id' => $user->id]);
-            
-            $user->sendEmailVerificationNotification();
-            Auth::login($user);
+        Customer::create([
+            'user_id' => $user->id,
+            'status' => 'active',
+        ]);
 
-            if ($request->expectsJson()) {
-                return response()->json(['success' => true, 'redirect' => '/email/verify']);
-            }
+        $user->sendEmailVerificationNotification();
 
-            return redirect('/email/verify')
-                           ->with('success', 'Compte créé ! Vérifiez votre email.');
-                           
-        } catch (\Exception $e) {
-            if ($request->expectsJson()) {
-                return response()->json(['error' => 'Erreur lors de l\'inscription'], 422);
-            }
+        auth()->login($user);
 
-            return redirect()->back()
-                           ->with('error', 'Une erreur est survenue')
-                           ->withInput();
-        }
+        return redirect()->route('verification.notice');
     }
 }

@@ -1,0 +1,139 @@
+# 🎭 Playwright Tests - Ce qui reste à faire
+
+## 📊 ÉTAT ACTUEL
+✅ Infrastructure Playwright stable
+✅ Login tests (4/4) - Tous passent
+✅ Database helpers fonctionnels  
+✅ Data-testid ajoutés dans les vues principales
+⚠️ Registration tests (2/6) - Partiels
+❌ Email verification (0/3) - Manquant
+❌ Creator setup wizard (0/6) - Manquant
+❌ Authentication réelle - Problème hash password
+
+## 🔥 PRIORITÉ 1 - Workflows critiques manquants
+
+### 1. Email Verification Flow (0/3 tests)
+- [ ] Test: Utilisateur non vérifié → redirection `/email/verify`
+- [ ] Test: Bouton "Resend verification" fonctionnel
+- [ ] Test: Utilisateur vérifié skip verification page
+- [ ] Créer: `playwright-tests/auth/email-verification.spec.js`
+- [ ] Ajouter data-testid dans: `resources/views/auth/email/verify.blade.php`
+
+### 2. Creator Setup Wizard (0/6 tests)
+- [ ] Test: Creator incomplet → redirection `/creator/setup`
+- [ ] Test: Setup timezone étape avec validation
+- [ ] Test: Setup profil étape avec validation
+- [ ] Test: Validation platform_name unique
+- [ ] Test: Validation URL format correct
+- [ ] Test: Completion → redirection creator dashboard
+- [ ] Créer: `playwright-tests/creator/setup-wizard.spec.js` complet
+- [ ] Ajouter data-testid dans: `resources/views/creator/setup/*.blade.php`
+
+### 3. Registration Flows Complets (4 tests manquants)
+- [ ] Test: Registration customer → email verification
+- [ ] Test: Registration creator → email verification  
+- [ ] Test: Validation email déjà utilisé
+- [ ] Test: Validation password confirmation
+- [ ] Compléter: `playwright-tests/auth/registration.spec.js`
+
+### 4. Role-based Redirections (Auth réelle)
+- [ ] Fix: Problème hash password Laravel en testing
+- [ ] Test: Customer login → `/customer/dashboard`
+- [ ] Test: Creator complet → `/creator/dashboard`
+- [ ] Test: Creator incomplet → `/creator/setup`
+- [ ] Test: Admin login → admin dashboard
+
+## 🔧 PRIORITÉ 2 - Fixes techniques
+
+### Authentication System
+- [ ] Résoudre Hash::make vs 'hashed' cast Laravel
+- [ ] Créer utilisateurs test fonctionnels pour auth réelle
+- [ ] Tester login avec redirections appropriées
+- [ ] Implémenter session management tests
+
+### Vues & Data-testid manquants
+- [ ] Email verification pages avec data-testid
+- [ ] Creator setup wizard pages avec data-testid  
+- [ ] Dashboard navigation avec data-testid
+- [ ] Error pages avec data-testid
+
+### Performance & Stabilité
+- [ ] Optimiser temps d'exécution (2min → <30s)
+- [ ] Réduire timeout des tests individuels
+- [ ] Éviter refreshDatabase sur chaque test
+- [ ] Parallélisation des tests non-conflictuels
+
+## 🎯 PRIORITÉ 3 - Features avancées
+
+### Session Management
+- [ ] Test: Remember me checkbox persistence
+- [ ] Test: Session timeout behavior
+- [ ] Test: Logout complet et redirection
+- [ ] Test: Multiple sessions gestion
+
+### Error Handling
+- [ ] Test: Network errors graceful handling
+- [ ] Test: Server errors display approprié
+- [ ] Test: Validation errors UX
+- [ ] Test: 404/403 pages behavior
+
+### Mobile Responsiveness
+- [ ] Test: Mobile viewport login flow
+- [ ] Test: Tablet viewport registration
+- [ ] Test: Touch interactions
+
+## 📋 FICHIERS À CRÉER/MODIFIER
+
+### Nouveaux fichiers tests
+```
+playwright-tests/auth/email-verification.spec.js
+playwright-tests/creator/setup-complete.spec.js  
+playwright-tests/auth/session-management.spec.js
+```
+
+### Vues Laravel à modifier
+```
+resources/views/auth/email/verify.blade.php
+resources/views/creator/setup/timezone.blade.php
+resources/views/creator/setup/profile.blade.php
+```
+
+### Utilitaires à améliorer
+```
+playwright-tests/utils/database-helpers.js - Fix auth
+playwright-tests/utils/auth-helpers.js - Add session tests
+```
+
+## 🚀 PLAN D'EXÉCUTION RECOMMANDÉ
+
+### Phase 1 (2h)
+1. Créer email verification tests
+2. Ajouter data-testid dans email verification views
+3. Tester workflow email verification
+
+### Phase 2 (3h)  
+1. Créer creator setup wizard tests complets
+2. Ajouter data-testid dans setup wizard views
+3. Tester validation métier setup
+
+### Phase 3 (2h)
+1. Résoudre problème authentication hash
+2. Compléter registration tests avec auth réelle
+3. Tester role-based redirections
+
+### Phase 4 (1h)
+1. Optimiser performance tests
+2. Session management tests
+3. Validation finale tous workflows
+
+## 📊 MÉTRIQUES SUCCÈS
+
+- [ ] 18+ tests auth workflows (actuellement 6)
+- [ ] 100% tests passent de façon stable  
+- [ ] Temps d'exécution < 30 secondes
+- [ ] 0 flaky tests
+- [ ] Couverture complète auth flows critiques
+- [ ] Documentation tests à jour
+
+## 🎯 OBJECTIF FINAL
+Suite de tests E2E Playwright complète qui valide TOUS les workflows d'authentification essentiels de l'application Laravel gaming/creator platform avec performance optimale et stabilité garantie.

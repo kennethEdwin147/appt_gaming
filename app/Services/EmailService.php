@@ -3,8 +3,8 @@
 namespace App\Services;
 
 use App\Models\User;
-use App\Models\Reservation;
-use App\Models\Creator;
+use App\Models\Reservation\Reservation;
+use App\Models\creator\Creator;
 use App\Notifications\ReservationConfirmation;
 use App\Notifications\CreatorAccountConfirmation;
 use App\Notifications\PasswordChanged;
@@ -13,7 +13,7 @@ use App\Notifications\ReservationCancelled;
 use App\Notifications\NewReservationCreator;
 use App\Notifications\PaymentConfirmation;
 use App\Notifications\MeetingLinkChanged;
-use App\Models\EventType;
+use App\Models\EventType\EventType;
 use Illuminate\Support\Facades\Password;
 
 /**

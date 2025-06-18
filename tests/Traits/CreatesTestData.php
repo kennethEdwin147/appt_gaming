@@ -7,6 +7,7 @@ use App\Models\creator\Creator;
 use App\Models\customer\Customer;
 use App\Models\availability\Availability;
 use Illuminate\Support\Facades\Hash;
+use Carbon\Carbon;
 
 trait CreatesTestData
 {
@@ -60,9 +61,12 @@ trait CreatesTestData
 
         $user = User::create($userAttributes);
         
+        static $creatorCounter = 0;
+        $creatorCounter++;
+        
         $defaults = [
             'user_id' => $user->id,
-            'gaming_pseudo' => 'ProGamer' . rand(1000, 9999),
+            'gaming_pseudo' => 'ProGamer' . $creatorCounter . rand(100, 999),
             'bio' => 'Expert gaming coach',
             'timezone' => 'America/Toronto',
             'confirmed_at' => now(),
@@ -106,9 +110,12 @@ trait CreatesTestData
             $creator = $this->createCreator();
         }
 
+        static $eventTypeCounter = 0;
+        $eventTypeCounter++;
+        
         $defaults = [
             'creator_id' => $creator->id,
-            'name' => 'Gaming Session',
+            'name' => 'Gaming Session ' . $eventTypeCounter,
             'description' => 'Professional gaming coaching session',
             'default_duration' => 60,
             'default_price' => 50.00,
@@ -154,14 +161,39 @@ trait CreatesTestData
             $creator = $this->createCreator();
         }
 
-        // Use microseconds to ensure uniqueness
-        $baseTime = now()->addDay()->setHour(10)->setMinute(0)->setSecond(0);
-        $startTime = $baseTime->addMicroseconds(rand(0, 999999));
+        static $globalCounter = 0;
+        $globalCounter++;
+        
+        // Si start_time est fourni dans les attributs, l'utiliser
+        if (isset($attributes['start_time'])) {
+            $startTime = $attributes['start_time'];
+            if (!$startTime instanceof Carbon) {
+                $startTime = Carbon::parse($startTime);
+            }
+        } else {
+            // Générer une heure unique basée sur un compteur global
+            $baseTime = now()->addDays(2)->setHour(8)->setMinute(0)->setSecond(0)->setMicrosecond(0);
+            
+            // Espacement de 35 minutes entre chaque slot pour éviter les conflits
+            $minuteOffset = $globalCounter * 35;
+            $startTime = $baseTime->copy()->addMinutes($minuteOffset);
+            
+            // Si on dépasse 23h, passer au jour suivant
+            if ($startTime->hour >= 23) {
+                $daysToAdd = floor($minuteOffset / (16 * 60)); // 16h de travail par jour
+                $startTime = $baseTime->copy()->addDays($daysToAdd)->addMinutes($minuteOffset % (16 * 60));
+            }
+        }
+        
+        $endTime = isset($attributes['end_time']) ? $attributes['end_time'] : $startTime->copy()->addMinutes(30);
+        if (!$endTime instanceof Carbon) {
+            $endTime = Carbon::parse($endTime);
+        }
         
         $defaults = [
             'creator_id' => $creator->id,
-            'start_time' => $startTime,
-            'end_time' => $startTime->copy()->addMinutes(30),
+            'start_time' => $startTime->utc(), // Stocker en UTC
+            'end_time' => $endTime->utc(),
             'timezone' => $creator->timezone ?? 'America/Toronto',
             'status' => 'available',
             'generated_for_date' => $startTime->format('Y-m-d'),

@@ -4,9 +4,9 @@ namespace App\Models\Reservation;
 
 use App\Models\User;
 use App\Models\creator\Creator;
-use App\Models\event_type\EventType;
+use App\Models\EventType\EventType;
 use App\Models\availability\Availability;
-use App\Models\time_slot\TimeSlot;
+use App\Models\TimeSlot\TimeSlot;
 use App\Models\transaction\Transaction;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -40,6 +40,15 @@ class Reservation extends Model
         'participants_count',
         'payment_status',
         'payment_id',
+        'cancellation_reason',
+        'cancelled_at',
+        'confirmed_at',
+        'completed_at',
+        'rescheduled_at',
+        'no_show_at',
+        'actual_start',
+        'actual_end',
+        'session_notes',
     ];
 
     /**
@@ -52,6 +61,13 @@ class Reservation extends Model
         return [
             'reserved_datetime' => 'datetime',
             'reservation_time' => 'datetime',
+            'cancelled_at' => 'datetime',
+            'confirmed_at' => 'datetime',
+            'completed_at' => 'datetime',
+            'rescheduled_at' => 'datetime',
+            'no_show_at' => 'datetime',
+            'actual_start' => 'datetime',
+            'actual_end' => 'datetime',
             'price_paid' => 'decimal:2',
         ];
     }

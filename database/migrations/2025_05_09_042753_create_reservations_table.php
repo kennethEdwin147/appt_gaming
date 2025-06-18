@@ -23,7 +23,7 @@ return new class extends Migration
             $table->string('timezone')->nullable()->comment('Fuseau horaire de l\'utilisateur qui a fait la réservation');
             $table->string('meeting_link')->nullable()->comment('Lien de réunion spécifique à cette réservation');
             $table->timestamp('reservation_time')->useCurrent();
-            $table->enum('status', ['pending', 'confirmed', 'cancelled', 'rescheduled', 'completed'])->default('pending')->comment('Statut de la réservation indépendamment du paiement');
+            $table->enum('status', ['pending', 'confirmed', 'cancelled', 'rescheduled', 'completed', 'no_show_customer', 'no_show_creator'])->default('pending')->comment('Statut de la réservation indépendamment du paiement');
             
             
             $table->foreignId('time_slot_id')->constrained()->after('event_type_id');

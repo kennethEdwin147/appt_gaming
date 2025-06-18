@@ -19,7 +19,7 @@ class CreatorSetupControllerTest extends TestCase
 
         // Assert
         $response->assertStatus(200);
-        $response->assertViewIs('auth.creator-setup.timezone');
+        $response->assertViewIs('authentication.creator-setup.timezone');
         $response->assertViewHas('timezones');
     }
 
@@ -79,7 +79,7 @@ class CreatorSetupControllerTest extends TestCase
 
         // Assert
         $response->assertStatus(200);
-        $response->assertViewIs('auth.creator-setup.profile');
+        $response->assertViewIs('authentication.creator-setup.profile');
         $response->assertViewHas('creator', $creator);
     }
 
