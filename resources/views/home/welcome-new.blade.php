@@ -59,9 +59,9 @@
             </div>
             <div class="grow">
               <div class="w-full flex items-center justify-center">
-                <p class="font-heading text-muted-700 dark:text-muted-200">
+               {{--  <p class="font-heading text-muted-700 dark:text-muted-200">
                   Settings
-                </p>
+                </p> --}}
               </div>
             </div>
             <div class="">
