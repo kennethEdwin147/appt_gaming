@@ -1,0 +1,38 @@
+[
+  {
+    "title": "New card",
+    "content": "Need a card? Create one",
+    "url": "/cards-create.html",
+    "icon": "ph:credit-card-duotone"
+  },
+  {
+    "title": "Accounts",
+    "content": "Manage your accounts",
+    "url": "/accounts.html",
+    "icon": "ph:grid-four-duotone"
+  },
+  {
+    "title": "Transactions",
+    "content": "View transaction history",
+    "url": "/transactions.html",
+    "icon": "ph:arrows-left-right-duotone"
+  },
+  {
+    "title": "Credit request",
+    "content": "Ask for funding",
+    "url": "/credit.html",
+    "icon": "ph:infinity-duotone"
+  },
+  {
+    "title": "New payment",
+    "content": "Create a payment request",
+    "url": "/payments-send.html",
+    "icon": "ph:envelope-duotone"
+  },
+  {
+    "title": "Settings",
+    "content": "manage your preferences",
+    "url": "/home.html",
+    "icon": "ph:gear-duotone"
+  }
+]

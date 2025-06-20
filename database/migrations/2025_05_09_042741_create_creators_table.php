@@ -14,6 +14,7 @@ return new class extends Migration
           Schema::create('creators', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->unique()->constrained()->onDelete('cascade');
+            $table->string('gaming_pseudo')->nullable()->unique();
             $table->text('bio')->nullable();
             $table->string('platform_name')->nullable();
             $table->string('platform_url')->nullable();
@@ -22,6 +23,10 @@ return new class extends Migration
             $table->text('confirmation_token')->nullable();  // Token de confirmation pour l'inscription
             $table->timestamp('confirmed_at')->nullable();  // Date de confirmation du compte
             $table->decimal('platform_commission_rate', 5, 2)->default(0.05)->comment('Taux de commission de la plateforme pour ce créateur (par défaut 5%)');
+            $table->timestamp('setup_completed_at')->nullable();
+            $table->string('main_game')->nullable();
+            $table->string('rank_info')->nullable();
+            $table->decimal('default_hourly_rate', 8, 2)->nullable();
             $table->timestamps();
         });
     }

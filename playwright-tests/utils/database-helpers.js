@@ -34,7 +34,7 @@ export async function createUser(userData = {}) {
         'email' => '${defaultUser.email}',
         'password' => \\Illuminate\\Support\\Facades\\Hash::make('${defaultUser.password}'),
         'role' => '${defaultUser.role}',
-        'email_verified_at' => now()
+        'email_verified_at' => ${userData.email_verified_at ? `'${userData.email_verified_at}'` : 'now()'}
       ]);
       echo 'USER_JSON_START' . json_encode(\\$user->toArray()) . 'USER_JSON_END';
     " --env=testing`;

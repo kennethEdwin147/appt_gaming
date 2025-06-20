@@ -27,11 +27,13 @@
   <title>Personal Tailwind CSS Template | Preline UI, crafted with Tailwind CSS</title>
 
   <!-- Favicon -->
-  <link rel="shortcut icon" href="../../favicon.ico">
+  <link rel="shortcut icon" href="{{ asset('apollo-theme/img/favicon.png') }}">
 
   <!-- Font -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
+  <!-- Apollo Theme Assets -->
+  <link rel="stylesheet" href="{{ asset('apollo-theme/assets/404-65d6cc7d.css') }}">
 
   <!-- Vite Assets -->
   @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -592,6 +594,9 @@
   <!-- JS PLUGINS -->
   <!-- Preline JS is now loaded via Vite -->
 
+  <!-- Apollo Theme JS -->
+  <script type="module" crossorigin src="{{ asset('apollo-theme/assets/404-f1ca4536.js') }}"></script>
+  
   <!-- JS THIRD PARTY PLUGINS -->
   <!-- Google Analytics. Global site tag (gtag.js) -->
   <script>

@@ -39,7 +39,7 @@ class AuthController extends Controller
             if ($user->role === 'creator') {
                 $creator = $user->creator;
                 if (!$creator || !$creator->timezone || !$creator->bio) {
-                    return redirect()->route('creator.setup.timezone');
+                    return redirect()->route('creator.setup');
                 }
                 return redirect()->route('creator.dashboard');
             }

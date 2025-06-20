@@ -1,9 +1,14 @@
-export async function loginAs(page, email, password = 'password') {
+export async function loginAs(page, email, password = 'password', rememberMe = false) {
   await page.goto('/login');
   await page.fill('[data-testid="email-input"]', email);
   await page.fill('[data-testid="password-input"]', password);
+  
+  if (rememberMe) {
+    await page.check('[data-testid="remember-me-checkbox"]');
+  }
+  
   await page.click('[data-testid="submit-button"]');
-  await page.waitForURL(/\/dashboard|\/creator/);
+  await page.waitForURL(/\/dashboard|\/creator|\/email\/verify/);
 }
 
 export async function registerUser(page, userData) {

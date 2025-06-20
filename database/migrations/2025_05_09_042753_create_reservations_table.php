@@ -16,21 +16,18 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('creator_id')->constrained()->onDelete('cascade');
             $table->foreignId('event_type_id')->constrained()->onDelete('cascade');
+            $table->foreignId('time_slot_id')->constrained();
             $table->foreignId('availability_id')->nullable()->constrained()->onDelete('set null')->comment('Référence à la disponibilité utilisée pour cette réservation');
             $table->string('guest_first_name')->nullable();
             $table->string('guest_last_name')->nullable();
             $table->dateTime('reserved_datetime');
             $table->string('timezone')->nullable()->comment('Fuseau horaire de l\'utilisateur qui a fait la réservation');
+            $table->decimal('price_paid', 8, 2);
+            $table->text('special_requests')->nullable();
+            $table->integer('participants_count')->default(1);
             $table->string('meeting_link')->nullable()->comment('Lien de réunion spécifique à cette réservation');
             $table->timestamp('reservation_time')->useCurrent();
             $table->enum('status', ['pending', 'confirmed', 'cancelled', 'rescheduled', 'completed', 'no_show_customer', 'no_show_creator'])->default('pending')->comment('Statut de la réservation indépendamment du paiement');
-            
-            
-            $table->foreignId('time_slot_id')->constrained()->after('event_type_id');
-            $table->decimal('price_paid', 8, 2)->after('timezone');
-            $table->text('special_requests')->nullable()->after('price_paid');
-            $table->integer('participants_count')->default(1)->after('special_requests');
-
             $table->string('payment_status')->default('pending');
             $table->string('payment_id')->nullable();
             $table->timestamps();

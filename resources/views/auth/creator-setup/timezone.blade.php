@@ -126,68 +126,7 @@
                             </div>
 
                         </div>
-                    </div>
-
-                    <!-- Sidebar -->
-                    <div>
-                        <div class="lg:sticky lg:top-16 bg-linear-to-r from-white/30 dark:from-gray-800/30 lg:overflow-x-hidden lg:overflow-y-auto no-scrollbar lg:shrink-0 border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-700/60 lg:w-[320px] xl:w-[352px] 2xl:w-[calc(352px+80px)] lg:h-[calc(100dvh-64px)]">
-                            <div class="py-8 px-4 lg:px-8 2xl:px-12">
-                                <div class="max-w-sm mx-auto lg:max-w-none">
-                                    <h2 class="text-2xl text-gray-800 dark:text-gray-100 font-bold mb-6">Configuration initiale</h2>
-                                    <div class="space-y-6">
-
-                                        <!-- Setup Progress -->
-                                        <div>
-                                            <div class="text-gray-800 dark:text-gray-100 font-semibold mb-2">Progression du setup</div>
-                                            <ul class="space-y-2">
-                                                <li class="flex items-center text-sm">
-                                                    <div class="w-4 h-4 rounded-full bg-violet-500 mr-3"></div>
-                                                    <span class="text-gray-800 dark:text-gray-100 font-medium">Configuration du fuseau horaire</span>
-                                                </li>
-                                                <li class="flex items-center text-sm">
-                                                    <div class="w-4 h-4 rounded-full bg-gray-300 dark:bg-gray-600 mr-3"></div>
-                                                    <span class="text-gray-500 dark:text-gray-400">Configuration du profil</span>
-                                                </li>
-                                                <li class="flex items-center text-sm">
-                                                    <div class="w-4 h-4 rounded-full bg-gray-300 dark:bg-gray-600 mr-3"></div>
-                                                    <span class="text-gray-500 dark:text-gray-400">Accès au dashboard</span>
-                                                </li>
-                                            </ul>
-                                        </div>
-
-                                        <!-- Why Timezone -->
-                                        <div>
-                                            <div class="text-gray-800 dark:text-gray-100 font-semibold mb-4">Pourquoi le fuseau horaire ?</div>
-                                            <div class="text-sm text-gray-600 dark:text-gray-400 space-y-2">
-                                                <p>Le fuseau horaire est essentiel pour :</p>
-                                                <ul class="list-disc list-inside space-y-1 ml-2">
-                                                    <li>Afficher vos créneaux disponibles correctement</li>
-                                                    <li>Coordonner les rendez-vous avec vos clients</li>
-                                                    <li>Envoyer les notifications au bon moment</li>
-                                                    <li>Éviter les confusions d'horaires</li>
-                                                </ul>
-                                            </div>
-                                        </div>
-
-                                        <!-- Time Display -->
-                                        <div class="bg-gray-50 dark:bg-gray-800/50 rounded-sm border border-gray-200 dark:border-gray-700/60 p-4">
-                                            <div class="text-center">
-                                                <div class="text-sm text-gray-500 dark:text-gray-400 mb-1">Heure actuelle du système</div>
-                                                <div class="text-lg font-semibold text-gray-800 dark:text-gray-100" id="current-time">
-                                                    {{ now()->format('H:i:s') }}
-                                                </div>
-                                                <div class="text-xs text-gray-500 dark:text-gray-400">
-                                                    {{ now()->format('d/m/Y') }}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                    </div>
-                                </div>
-                            </div>
                         </div>
-                    </div>
-
                 </div>
 
             </main>
@@ -198,15 +137,6 @@
 
     <script src="{{ asset('admin_theme/js/vendors/alpinejs.min.js') }}" defer></script>
     <script src="{{ asset('admin_theme/js/main.js') }}"></script>
-
-    <script>
-        // Update current time every second
-        setInterval(function() {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString('fr-FR');
-            document.getElementById('current-time').textContent = timeString;
-        }, 1000);
-    </script>
 
 </body>
 

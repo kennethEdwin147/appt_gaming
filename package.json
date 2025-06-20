@@ -4,7 +4,8 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite",
+        "dev": "vite --host=127.0.0.1 --port=5173",
+        "dev:watch": "vite --host=127.0.0.1 --port=5173 --watch",
         "test:e2e": "playwright test",
         "test:e2e:ui": "playwright test --ui",
         "test:e2e:debug": "playwright test --debug",
