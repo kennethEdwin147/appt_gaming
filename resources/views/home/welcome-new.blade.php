@@ -326,11 +326,30 @@
       <div class="w-full pt-32 pb-20">
         <div x-data="tabs()" class="w-full max-w-6xl mx-auto px-4">
           <div class="w-full grid md:grid-cols-12 gap-8 md:gap-16">
+
+ 
             <!--Stepper column-->
             <div class="md:col-span-3 lg:col-span-3">
               <!--Tabs-->
+              
               <div class="h-full border-r border-muted-200 dark:border-muted-800">
                 <ul class="-mr-0.5 xs:flex xs:gap-4">
+                  <li>
+                               {{-- ajout --}}
+
+<div class="flex
+gap-4
+ flex-col
+ mb-10">
+    <img class="w-20 h-20 rounded-full object-cover" src="https://images.pexels.com/photos/1310452/pexels-photo-1310452.jpeg?_gl=1*1sm54ys*_ga*MjEzOTYxMjc4MS4xNzQ3ODc2ODc0*_ga_8JE65Q40S6*czE3NTA0Mzg2NDAkbzE0JGcxJHQxNzUwNDM5OTIwJGozMCRsMCRoMA.." alt="">
+    <div class="">
+        <p class="text-muted-800 dark:text-muted-100 border-primary-500 font-bold
+">Jilian Ross</p>
+    </div>
+</div>
+
+            {{-- end ajout --}}
+                  </li>
                   <li>
                     <a
                       class="
@@ -419,31 +438,69 @@
                 class="py-6 space-y-10 divide-muted-200 dark:divide-muted-800"
               >
               {{-- intro --}}
-               <div class="h-full p-10 bg-white dark:bg-muted-1000
-                           rounded-xl {{-- border border-muted-200 dark:border-muted-800 
-                           shadow-xl shadow-muted-400/10 dark:shadow-muted-800/10 --}}"
-                        >
-                  <div class="h-full flex flex-col justify-between gap-5">
-                    <h4 class="font-heading font-semibold text-sm uppercase text-muted-400">
-                      Mara's Account
-                    </h4>
-                
-                    <h2 class="font-heading font-medium text-4xl ptablet:text-2xl text-muted-800 dark:text-white">
-                      Welcome back, Mara! 👋
-                    </h2>
-                
-                    <p class="font-sans text-muted-500">
-                      Everything seems ok and up-to-date with your account since your last
-                      visit. Would you like to fund it?
-                    </p>
-                
-                    <a href="/payments-receive.html" class="h-12 max-w-[220px] inline-flex justify-center items-center gap-x-2 px-6 py-2 font-sans text-sm text-white bg-primary-500 rounded-full shadow-lg shadow-primary-500/20 hover:shadow-xl tw-accessibility transition-all duration-300">
-                      <span>Fund my Account</span>
-                    </a>
+              
+
+                {{-- image --}}
+
+                <div>
+
+                  
+                <h2
+                  class="font-heading text-2xl md:text-3xl text-muted-800 dark:text-white mb-8"
+                >
+                  Select a transfer method
+                </h2>
+
+                <div class="w-full max-w-md">
+                  <div class="w-full space-y-4">
+                    <!--Item-->
+                    <button type="button" class="group w-full flex items-center py-4 px-6 bg-white dark:bg-muted-1000 border-2 border-muted-200 dark:border-muted-800 hover:border-primary-500 dark:hover:border-primary-500 hover:shadow-xl hover:shadow-muted-400/10 dark:shadow-muted-800/10 hover:-translate-x-0.5 rounded-xl cursor-pointer transition-all duration-300 tw-accessibility" @click="nextStep(), paymentMethod = 'transfer'">
+                      <span class="flex items-center justify-center w-12 h-12 text-muted-600 dark:text-muted-400 bg-muted-100 dark:bg-muted-900 group-hover:bg-primary-500 group-hover:text-white group-hover:rotate-180 rounded-full transition-all duration-300">
+                        <iconify-icon class="iconify w-6 h-6 flex items-center justify-center text-2xl" icon="ph:arrows-left-right-duotone"></iconify-icon>
+                      </span>
+                      <span class="flex flex-col ml-6">
+                        <span class="font-heading text-base font-medium text-muted-800 dark:text-muted-100">
+                          Bank transfer
+                        </span>
+                      </span>
+                      <span class="flex flex-col ml-auto">
+                        <iconify-icon class="iconify w-5 h-5 flex items-center justify-center text-xl text-muted-400" icon="lucide:arrow-right"></iconify-icon>
+                      </span>
+                    </button>
+                    <!--Item-->
+                    <button type="button" class="group w-full flex items-center py-4 px-6 bg-white dark:bg-muted-1000 border-2 border-muted-200 dark:border-muted-800 hover:border-primary-500 dark:hover:border-primary-500 hover:shadow-xl hover:shadow-muted-400/10 dark:shadow-muted-800/10 hover:-translate-x-0.5 rounded-xl cursor-pointer transition-all duration-300 tw-accessibility" @click="nextStep(), paymentMethod = 'link'">
+                      <span class="flex items-center justify-center w-12 h-12 text-muted-600 dark:text-muted-400 bg-muted-100 dark:bg-muted-900 group-hover:bg-primary-500 group-hover:text-white group-hover:rotate-180 rounded-full transition-all duration-300">
+                        <iconify-icon class="iconify w-6 h-6 flex items-center justify-center text-2xl" icon="ph:link-duotone"></iconify-icon>
+                      </span>
+                      <span class="flex flex-col ml-6">
+                        <span class="font-heading text-base font-medium text-muted-800 dark:text-muted-100">
+                          Payment link
+                        </span>
+                      </span>
+                      <span class="flex flex-col ml-auto">
+                        <iconify-icon class="iconify w-5 h-5 flex items-center justify-center text-xl text-muted-400" icon="lucide:arrow-right"></iconify-icon>
+                      </span>
+                    </button>
+                    <!--Item-->
+                    <button type="button" class="group w-full flex items-center py-4 px-6 bg-white dark:bg-muted-1000 border-2 border-muted-200 dark:border-muted-800 hover:border-primary-500 dark:hover:border-primary-500 hover:shadow-xl hover:shadow-muted-400/10 dark:shadow-muted-800/10 hover:-translate-x-0.5 rounded-xl cursor-pointer transition-all duration-300 tw-accessibility" @click="nextStep(), paymentMethod = 'wire'">
+                      <span class="flex items-center justify-center w-12 h-12 text-muted-600 dark:text-muted-400 bg-muted-100 dark:bg-muted-900 group-hover:bg-primary-500 group-hover:text-white group-hover:rotate-180 rounded-full transition-all duration-300">
+                        <iconify-icon class="iconify w-6 h-6 flex items-center justify-center text-2xl" icon="ph:note-duotone"></iconify-icon>
+                      </span>
+                      <span class="flex flex-col ml-6">
+                        <span class="font-heading text-base font-medium text-muted-800 dark:text-muted-100">
+                          Wire
+                        </span>
+                      </span>
+                      <span class="flex flex-col ml-auto">
+                        <iconify-icon class="iconify w-5 h-5 flex items-center justify-center text-xl text-muted-400" icon="lucide:arrow-right"></iconify-icon>
+                      </span>
+                    </button>
                   </div>
                 </div>
 
-                {{-- image --}}
+
+
+                </div>
 
 
 
