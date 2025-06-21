@@ -30,6 +30,9 @@ class EventType extends Model
         'meeting_platform',
         'meeting_link',
         'session_type',
+        'game_title',
+        'platform',
+        'allow_game_choice',
         'is_active',
         'creator_id',
     ];

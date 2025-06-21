@@ -7,7 +7,6 @@
   <link rel="canonical" href="https://preline.co/">
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
   <meta name="description" content="Explore the Coffee Shop demo with a clean product detail page and flexible checkout options for modern, clean, and minimal e-commerce experiences.">
-  <meta name="csrf-token" content="{{ csrf_token() }}">
 
   <meta name="twitter:site" content="@preline">
   <meta name="twitter:creator" content="@preline">
@@ -25,7 +24,7 @@
   <meta property="og:image" content="https://preline.co/assets/img/og-image.png">
 
   <!-- Title -->
-  <title>Gaming Platform | Register Customer</title>
+  <title>Gaming Platform | Welcome</title>
 
   <!-- Favicon -->
   <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
@@ -143,7 +142,7 @@
           
             <div class="max-w-sm mx-auto w-full px-4 py-8">
 
-                        <h1 class="text-3xl text-gray-800  font-bold mb-6">{{ __('Créer un compte client') }}</h1>
+                        <h1 class="text-3xl text-gray-800  font-bold mb-6">{{ __('Welcome back!') }}</h1>
 
                         @if (session('success'))
                             <div class="bg-green-100 text-green-600 px-3 py-2 rounded mb-4" data-testid="success-message">
@@ -158,66 +157,37 @@
                         @endif
                         
                         <!-- Form -->
-                        <form method="POST" action="{{ route('customer.register.submit') }}" id="customerRegisterForm" data-testid="register-form">
+                        <form method="POST" action="{{ route('login') }}" data-testid="login-form">
                             @csrf
                             <div class="space-y-4">
-                                <div class="space-y-4 sm:flex sm:space-y-0 sm:space-x-4">
-                                    <div class="sm:w-1/2">
-                                        <label class="block text-sm font-medium mb-1" for="first_name">{{ __('Prénom') }} <span class="text-red-500">*</span></label>
-                                        <input id="first_name" data-testid="first-name-input" class="form-input w-full @error('first_name') border-red-500 @enderror" type="text" name="first_name" value="{{ old('first_name') }}" required autocomplete="first_name" />
-                                        @error('first_name')
-                                            <div class="text-red-500 mt-1 text-sm" data-testid="validation-error">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                    <div class="sm:w-1/2">
-                                        <label class="block text-sm font-medium mb-1" for="last_name">{{ __('Nom') }} <span class="text-red-500">*</span></label>
-                                        <input id="last_name" data-testid="last-name-input" class="form-input w-full @error('last_name') border-red-500 @enderror" type="text" name="last_name" value="{{ old('last_name') }}" required autocomplete="last_name" />
-                                        @error('last_name')
-                                            <div class="text-red-500 mt-1 text-sm" data-testid="validation-error">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
                                 <div>
-                                    <label class="block text-sm font-medium mb-1" for="email">{{ __('Adresse e-mail') }} <span class="text-red-500">*</span></label>
-                                    <input id="email" data-testid="email-input" class="form-input w-full @error('email') border-red-500 @enderror" type="email" name="email" value="{{ old('email') }}" required autocomplete="email" />
+                                    <label class="block text-sm font-medium mb-1" for="email">{{ __('Email Address') }}</label>
+                                    <input id="email" data-testid="email-input" class="form-input w-full @error('email') border-red-500 @enderror" type="email" name="email" value="{{ old('email') }}" autocomplete="email" autofocus />
                                     @error('email')
                                         <div class="text-red-500 mt-1 text-sm" data-testid="validation-error">{{ $message }}</div>
                                     @enderror
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium mb-1" for="password">{{ __('Mot de passe') }} <span class="text-red-500">*</span></label>
-                                    <input id="password" data-testid="password-input" class="form-input w-full @error('password') border-red-500 @enderror" type="password" name="password" required autocomplete="new-password" />
+                                    <label class="block text-sm font-medium mb-1" for="password">{{ __('Password') }}</label>
+                                    <input id="password" data-testid="password-input" class="form-input w-full @error('password') border-red-500 @enderror" type="password" name="password" autocomplete="current-password" />
                                     @error('password')
                                         <div class="text-red-500 mt-1 text-sm" data-testid="validation-error">{{ $message }}</div>
                                     @enderror
                                 </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-1" for="password_confirmation">{{ __('Confirmer le mot de passe') }} <span class="text-red-500">*</span></label>
-                                    <input id="password_confirmation" data-testid="password-confirmation-input" class="form-input w-full" type="password" name="password_confirmation" required autocomplete="new-password" />
-                                </div>
                             </div>
                             <div class="flex items-center justify-between mt-6">
                                 <div class="mr-1">
-                                    <label class="flex items-center">
-                                        <input type="checkbox" class="form-checkbox" name="newsletter" />
-                                        <span class="text-sm ml-2">{{ __('Recevoir les actualités par email.') }}</span>
-                                    </label>
+                                    @if (Route::has('password.request'))
+                                        <a class="text-sm underline hover:no-underline" data-testid="forgot-password-link" href="{{ route('password.request') }}">{{ __('Forgot Password?') }}</a>
+                                    @endif
                                 </div>
-                                <button type="submit" data-testid="submit-button" class="btn bg-violet-500 hover:bg-violet-600 text-white ml-3 whitespace-nowrap" id="customerSubmitBtn">
-                                    <span id="customerSubmitText">{{ __('C\'est parti !') }}</span>
-                                    <span id="customerLoadingSpinner" class="hidden">
-                                        <svg class="animate-spin w-4 h-4 fill-current shrink-0 mr-1" viewBox="0 0 16 16">
-                                            <path d="M8 16a8 8 0 1 1 8-8 7.91 7.91 0 0 1-1.754 5" />
-                                        </svg>
-                                        Création...
-                                    </span>
-                                </button>
+                                <button type="submit" data-testid="submit-button" class="btn bg-gray-900 text-gray-100 hover:bg-gray-800    ml-3">{{ __('Sign In') }}</button>
                             </div>
                         </form>
                         <!-- Footer -->
                         <div class="pt-5 mt-6 border-t border-gray-100 ">
                             <div class="text-sm">
-                                {{ __('Tu as dejà un compte ?') }} <a class="font-medium text-violet-500 hover:text-violet-600 " href="{{ route('login') }}">{{ __('Connectes toi') }}</a>
+                                {{ __('Don\'t you have an account?') }} <a class="font-medium text-violet-500 hover:text-violet-600 " data-testid="register-link" href="{{ route('choose-role') }}">{{ __('Sign Up') }}</a>
                             </div>
                             <!-- Warning -->
                             <div class="mt-5">
@@ -398,75 +368,5 @@
   </footer>
   <!-- ========== END FOOTER ========== -->
 
-  <!-- Hidden trigger element for MicroModal -->
-  <a href="#" data-micromodal-trigger="modal-customer-success" class="hidden"></a>
-
-  <!-- Modal de succès pour la création de compte -->
-  <div class="modal micromodal-slide hidden" id="modal-customer-success" aria-hidden="true" inert>
-      <div class="modal__overlay fixed inset-0 bg-gray-900 bg-opacity-70 z-50" data-micromodal-close>
-          <div class="modal__container relative bg-white rounded shadow-lg max-w-md w-full mx-4 p-6" role="dialog" aria-modal="true" aria-labelledby="modal-customer-success-title">
-              <div class="text-center">
-                  <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 text-emerald-500 mb-4">
-                      <svg class="w-8 h-8 fill-current" viewBox="0 0 16 16">
-                          <path d="M8 0C3.6 0 0 3.6 0 8s3.6 8 8 8 8-3.6 8-8-3.6-8-8-8zM7 11.4L3.6 8 5 6.6l2 2 4-4L12.4 6 7 11.4z"></path>
-                      </svg>
-                  </div>
-                  <h3 id="modal-customer-success-title" class="text-xl font-bold text-gray-800 mb-2">Compte client créé !</h3>
-                  <div class="text-gray-600 mb-6">
-                      🎉 Félicitations ! Votre compte client a été créé avec succès.
-                      <br>
-                      <span class="text-sm">Un email de confirmation a été envoyé.</span>
-                      <br>
-                      <span class="text-sm">Redirection vers la vérification email...</span>
-                  </div>
-                  <div class="flex justify-center">
-                      <svg class="animate-spin w-5 h-5 fill-current text-violet-500" viewBox="0 0 16 16">
-                          <path d="M8 16a8 8 0 1 1 8-8 7.91 7.91 0 0 1-1.754 5" />
-                      </svg>
-                  </div>
-              </div>
-          </div>
-      </div>
-  </div>
-
-  <script src="{{ asset('admin_theme/js/vendors/alpinejs.min.js') }}" defer></script>
-  <script src="{{ asset('admin_theme/js/main.js') }}"></script>
-  <script src="https://unpkg.com/micromodal/dist/micromodal.min.js"></script>
-  <script type="module">
-      // Configuration du token CSRF pour les requêtes AJAX
-      document.addEventListener('DOMContentLoaded', function() {
-          // Initialiser MicroModal
-          MicroModal.init({
-              disableScroll: true,
-              disableFocus: false,
-              awaitOpenAnimation: false,
-              awaitCloseAnimation: false,
-              debugMode: false
-          });
-
-          // Récupérer le token CSRF depuis la balise meta
-          let token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
-          // Ajouter le token à toutes les requêtes AJAX
-          let headers = new Headers();
-          headers.append('X-CSRF-TOKEN', token);
-
-          // Pop-up de succès et loading pour client
-          const form = document.getElementById('customerRegisterForm');
-          const submitBtn = document.getElementById('customerSubmitBtn');
-          const submitText = document.getElementById('customerSubmitText');
-          const loadingSpinner = document.getElementById('customerLoadingSpinner');
-
-          form.addEventListener('submit', function(e) {
-              // Show loading state but allow normal form submission
-              submitBtn.disabled = true;
-              submitText.classList.add('hidden');
-              loadingSpinner.classList.remove('hidden');
-              
-              // Don't prevent default - let the form submit normally
-          });
-
-      });
-  </script>
 </body>
 </html>

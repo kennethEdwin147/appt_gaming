@@ -6,7 +6,7 @@ const execAsync = promisify(exec);
 export async function refreshDatabase() {
   try {
     console.log('Refreshing database...');
-    const { stdout, stderr } = await execAsync('cd /home/kenneth/dev/gaming-platform && php artisan migrate:fresh --seed --env=testing --force');
+    const { stdout, stderr } = await execAsync('cd /home/kenneth/dev/gaming-platform && php artisan migrate:fresh --seed --force');
     console.log('Database refresh stdout:', stdout);
     if (stderr) console.log('Database refresh stderr:', stderr);
   } catch (error) {
@@ -21,7 +21,7 @@ export async function createUser(userData = {}) {
     first_name: 'Test',
     last_name: 'User',
     email: `test-${timestamp}@example.com`,
-    password: 'password',
+    password: 'password123',
     role: 'customer',
     ...userData
   };
@@ -36,8 +36,21 @@ export async function createUser(userData = {}) {
         'role' => '${defaultUser.role}',
         'email_verified_at' => ${userData.email_verified_at ? `'${userData.email_verified_at}'` : 'now()'}
       ]);
+      
+      if ('${defaultUser.role}' === 'customer') {
+        \\App\\Models\\customer\\Customer::create(['user_id' => \\$user->id]);
+      } elseif ('${defaultUser.role}' === 'creator') {
+        \\App\\Models\\creator\\Creator::create([
+          'user_id' => \\$user->id,
+          'bio' => 'Test creator bio',
+          'gaming_pseudo' => 'TestCreator',
+          'timezone' => 'America/Toronto',
+          'setup_completed' => true
+        ]);
+      }
+      
       echo 'USER_JSON_START' . json_encode(\\$user->toArray()) . 'USER_JSON_END';
-    " --env=testing`;
+    "`;
     
     console.log('Creating user with command:', command);
     console.log('User data:', defaultUser);
@@ -93,7 +106,7 @@ export async function createCreator(userData = {}) {
         'setup_completed' => ${defaultCreator.setup_completed ? 'true' : 'false'}
       ]);
       echo 'CREATOR_JSON_START' . json_encode(\\$creator->toArray()) . 'CREATOR_JSON_END';
-    " --env=testing`;
+    "`;
     
     const { stdout } = await execAsync(command);
     const output = stdout.trim();

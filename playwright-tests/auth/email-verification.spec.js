@@ -8,10 +8,11 @@ test.describe('Email Verification', () => {
 
   test('should redirect unverified user to verification page', async ({ page }) => {
     // Créer un utilisateur non vérifié
+    // NOTE: Using test email for Resend service
     await createUser({
       first_name: 'John',
       last_name: 'Doe',
-      email: 'unverified@example.com',
+      email: 'test.playwright@example.com',
       password: 'password123',
       email_verified_at: null // Utilisateur non vérifié
     });
@@ -27,10 +28,11 @@ test.describe('Email Verification', () => {
 
   test('should show resend verification functionality', async ({ page }) => {
     // Créer un utilisateur non vérifié
+    // NOTE: Using test email for Resend service
     await createUser({
       first_name: 'Jane',
       last_name: 'Doe',
-      email: 'unverified2@example.com',
+      email: 'test.playwright2@example.com',
       password: 'password123',
       email_verified_at: null
     });
@@ -49,22 +51,23 @@ test.describe('Email Verification', () => {
 
   test('should allow verified users to access protected pages', async ({ page }) => {
     // Créer un utilisateur vérifié
+    // NOTE: Using test email for Resend service
     await createUser({
       first_name: 'Verified',
       last_name: 'User',
-      email: 'verified@example.com',
+      email: 'test.verified@example.com',
       password: 'password123',
       email_verified_at: new Date().toISOString() // Utilisateur vérifié
     });
 
     // Se connecter
     await page.goto('/login');
-    await page.fill('[data-testid="email-input"]', 'verified@example.com');
+    await page.fill('[data-testid="email-input"]', 'test.verified@example.com');
     await page.fill('[data-testid="password-input"]', 'password123');
     await page.click('[data-testid="submit-button"]');
     
     // Vérifier l'accès direct au dashboard sans redirection vers verification
-    await expect(page).toHaveURL(/.*\/dashboard/);
-    await expect(page.locator('[data-testid="dashboard-content"]')).toBeVisible();
+    await expect(page).toHaveURL(/.*\/customer\/dashboard/);
+    await expect(page.locator('[data-testid="customer-dashboard"]')).toBeVisible();
   });
 });

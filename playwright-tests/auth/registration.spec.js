@@ -26,9 +26,10 @@ test.describe('Registration Page', () => {
     await expect(page.locator('[data-testid="register-form"]')).toBeVisible();
     
     // Remplir le formulaire
+    // NOTE: Resend email service only accepts edwingbeti@gmail.com
     await page.fill('[data-testid="first-name-input"]', 'John');
     await page.fill('[data-testid="last-name-input"]', 'Doe');
-    await page.fill('[data-testid="email-input"]', 'john@example.com');
+    await page.fill('[data-testid="email-input"]', 'edwingbeti@gmail.com');
     await page.fill('[data-testid="password-input"]', 'password123');
     await page.fill('[data-testid="password-confirmation-input"]', 'password123');
     
@@ -49,9 +50,10 @@ test.describe('Registration Page', () => {
     await expect(page.locator('[data-testid="register-form"]')).toBeVisible();
     
     // Remplir le formulaire
+    // NOTE: Resend email service only accepts edwingbeti@gmail.com
     await page.fill('[data-testid="first-name-input"]', 'Jane');
     await page.fill('[data-testid="last-name-input"]', 'Creator');
-    await page.fill('[data-testid="email-input"]', 'jane@example.com');
+    await page.fill('[data-testid="email-input"]', 'edwingbeti@gmail.com');
     await page.fill('[data-testid="password-input"]', 'password123');
     await page.fill('[data-testid="password-confirmation-input"]', 'password123');
     
@@ -77,10 +79,11 @@ test.describe('Registration Page', () => {
 
   test('should show error when email is already taken', async ({ page }) => {
     // Créer un utilisateur avec un email spécifique
+    // NOTE: Using test email for tests
     await createUser({
       first_name: 'Existing',
       last_name: 'User',
-      email: 'existing@example.com',
+      email: 'test.existing@example.com',
       password: 'password123'
     });
     
@@ -92,7 +95,7 @@ test.describe('Registration Page', () => {
     // Remplir le formulaire avec l'email existant
     await page.fill('[data-testid="first-name-input"]', 'Test');
     await page.fill('[data-testid="last-name-input"]', 'User');
-    await page.fill('[data-testid="email-input"]', 'existing@example.com');
+    await page.fill('[data-testid="email-input"]', 'test.existing@example.com');
     await page.fill('[data-testid="password-input"]', 'password123');
     await page.fill('[data-testid="password-confirmation-input"]', 'password123');
     

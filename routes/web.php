@@ -5,6 +5,8 @@ use App\Http\Controllers\Home\HomeController;
 
 // Home Route
 Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/profile', [HomeController::class, 'profile'])->name('profile');
+
 
 // Include Auth Routes
 require __DIR__ . '/auth/auth.php';

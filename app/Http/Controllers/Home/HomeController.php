@@ -8,6 +8,11 @@ class HomeController extends Controller
 {
     public function index()
     {
-        return view('home.welcome-new');
+        return view('home.welcome');
+    }
+
+    public function profile()
+    {
+        return view('public-profile.events');
     }
 }
